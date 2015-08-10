@@ -1,12 +1,13 @@
 /*
  *   Common Forth 386 and C(++) Library Functions Interface
  *
- *						    Version 2.2
+ *						    Version 2.4
  *						    Written by  : Luke Lee
  *						    	 update : 12/01/'95
  *						    	 update : 01/02/'96
  *						    	 update : 01/06/'96
- *						    Last update : 03/14/'96
+ *						         update : 03/14/'96
+ *						    Last update : 11/06/'96
  */
 
 // 12/01 : redefine fnumber with a strict syntax check (finite state machine)
@@ -52,6 +53,31 @@ void dbgmsg(char *format,...) {
 /**************************************\
  *       C and FORTH interface        *
 \**************************************/
+
+void break_mark(void) {
+  // A NULL function for debuggers, such as PHARLAP DXDEBUG.
+}
+
+/* Note that this function will be patched after FLOAD INVOKEC.4TH */
+void forth_pause(void) {                                // 11/06/'96
+   return;        /* in case not patched yet */
+   forth_pause(); /* will be patched later */
+   return;
+}
+
+#if DEBUG
+int pause_test_count = 0;                               // 11/06/'96
+/* this function should be tested in a background task */
+void pause_test(void) {
+    for (int i=0;i<0x7FFFFFFF;i++) {
+       forth_pause();
+       pause_test_count++;
+    }
+}
+int pause_count(void) { 
+   return pause_test_count;
+}
+#endif
 
 char *linking_forth;
 int   curr_buf_size, chars_count;
@@ -207,7 +233,9 @@ double fdivr( double f1, double f2 ) {	return  f2 / f1;    	}
 
 /****  interpret FORTH from C functions ****/
 
-forth_interpreter_t *forth_interpreter;	// setup by establish_linkage()
+static forth_interpreter_t *forth_interpreter=NULL; 
+                                             // setup by establish_linkage()
+                                             // and reconnect_linkage()
 
 int forth_interpret( char* forth, int length ) {
     return (*forth_interpreter)(forth,length);
@@ -316,6 +344,16 @@ int register_funcs( int in1, int out1, addr func1, char* funcname1, ... )
 } /*  register_funcs  */
 
 /****************************************************************\
+ *  Function  : reconnect_linkage				*
+\****************************************************************/
+
+void reconnect_linkage( forth_interpreter_t *interpreter ) {
+   // This function is used for turnkey systems which had already
+   // built its linkage, but lost some variable after reboot
+   forth_interpreter = interpreter;
+}
+
+/****************************************************************\
  *  Function  : establish_linkage				*
 \****************************************************************/
 
@@ -330,6 +368,13 @@ int establish_linkage( int * string_length,
     /*      #in     #out           fn addr             fn name
        ---------------------------------------------------------------- */
     if (register_funcs(	   /*****  minimal linking set  *****/
+             1,      0,         (addr)&reconnect_linkage,"reconnect_linkage",
+             0,      0,         (addr)&break_mark,      "break_mark",
+             0,      0,         (addr)&forth_pause,     "forth_pause",
+          #if DEBUG
+             0,      0,         (addr)&pause_test,      "pause_test",
+             0,      1,         (addr)&pause_count,     "pause_count",
+          #endif
 	     2,	     DOUBLE,	(addr)&fnumber,		"fnumber",	
 	     1,	     DOUBLE,	(addr)&itof,		"itof",
 	     2,	     1,		(addr)&ftoi,		"ftoi",	

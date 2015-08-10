@@ -1,7 +1,7 @@
 // Short-Cut Boolean Evaluation Control Structure
 //                                    08/04/'93  Designed by : Luke Lee
-//                                               Version     : 2.1
-//						 Last update : 09/26/'95
+//                                               Version     : 2.5
+//						 Last update : 01/19/'97
 
 //  The idea came from ADA/CS language ( a subset of ADA ),
 //  the 'and then' and 'or else' for short cut boolean evaluation .
@@ -25,6 +25,23 @@
 //           A ANDTHEN B ANDTHEN C ANDTHEN D ANDTHEN
 //               E ORELSE F ORELSE G ELSE-OR
 //           THEN-AND
+//
+//  New Syntax :                                        01/18/'97 
+//   This syntax is designed for nesting short-cut boolean evaluations.
+//      1. ANY{
+//               <word list>  ( -- T/F1 )
+//            ORELSE
+//               <word list>  ( -- T/F2 )
+//            ORELSE
+//               <word list>  ( -- T/F3 )
+//         }ANY?         ( -- T/F1 OR T/F2 OR T/F3 )
+//      2. ALL{
+//               <word list>  ( -- T/F1 )
+//            ANDTHEN
+//               <word list>  ( -- T/F2 )
+//            ANDTHEN
+//               <word list>  ( -- T/F3 )
+//         }ALL?         ( -- T/F1 AND T/F2 AND T/F3 )
 
 FORTH DEFINITIONS
 
@@ -44,7 +61,7 @@ HIDDEN ALSO DEFINITIONS
 : (ORELSE)      (( -- A ))
                 COMPILE JT<>0 (MARK-CUT)
                 ; 0 1 #PARMS COMPILEONLY
-: (RESLOVE-CUT) (( A -- ))
+: (RESOLVE-CUT) (( A -- ))
                 HERE SWAP +! ; 1 0 #PARMS COMPILEONLY
 
 : ?MISSING-ANDTHEN (( -- ))		// 09/20/'95
@@ -78,7 +95,7 @@ FORTH DEFINITIONS
 	?MISSING-ANDTHEN
         ?EXPECT-ELSE-OR         // prevent misuse of THEN-AND
         \ REANDTHEN
-        0 ?DO  (RESLOVE-CUT)  LOOP  ; IMMEDIATE
+        0 ?DO  (RESOLVE-CUT)  LOOP  ; IMMEDIATE
 
 : ORELSE  // (( -- A #count )) or (( A #count -- A A' #count ))
         ORELSEED? @ IF
@@ -91,7 +108,29 @@ FORTH DEFINITIONS
 	?MISSING-ORELSE
         ?EXPECT-THEN-AND        // prevent misuse of ELSE-OR
         \ REORELSE
-        0 SWAP ?DO  (RESLOVE-CUT)  LOOP  ; IMMEDIATE
+        0 SWAP ?DO  (RESOLVE-CUT)  LOOP  ; IMMEDIATE
+
+// The following are added at [01/19/'97]
+// Assume that the first page [ 0..Pagesize ] bytes machine's 4G virtual address
+// and the last page [ ($FFFFFFFF-Pagesize)..$FFFFFFFF ] are un-accessable.
+
+: ALL{  ( -- andthened? )
+        OPTIMIZE @ NOT IF  COMPILE nop  ENDIF   // as a marker
+        ANDTHENED? @    \ REANDTHEN     ; 0 1 #PARMS IMMEDIATE
+
+: }ALL? ( andthened? A0 A1 A2 ... +#count  -- )
+        ANDTHENED? @ IF  \ THEN-AND  ENDIF  ANDTHENED? ! ; IMMEDIATE
+' ALL{  ALIAS ALL
+' }ALL? ALIAS ALL?
+
+: ANY{  ( -- orelseed? )        // since -1 is used as TRUE
+        OPTIMIZE @ NOT IF  COMPILE nop  ENDIF   // as a marker
+        ORELSEED? @     \ REORELSE      ; 0 1 #PARMS IMMEDIATE
+
+: }ANY? ( orelseed? A0 A1 A2 ... -#count -- )
+        ORELSEED? @ IF  \ ELSE-OR  ENDIF  ORELSEED? !  ; IMMEDIATE
+' ANY{   ALIAS ANY
+' }ANY?  ALIAS ANY?
 
 : :     \ REANDTHEN \ REORELSE	
 	:       ; 0 0 #PARMS
@@ -100,8 +139,8 @@ ONLY FORTH ALSO DEFINITIONS
 
 COMMENT: ------------------ Test program -----------------------
 
-: .ANDTHEN      ." ANDTHEN" ;
-: .ORELSE       ." ORELSE" ;
+: .ANDTHEN      ." ANDTHEN " ;
+: .ORELSE       ." ORELSE " ;
 : ANDTHEN       COMPILE .ANDTHEN \ ANDTHEN ; IMMEDIATE
 : ORELSE        COMPILE .ORELSE  \ ORELSE ; IMMEDIATE
 
@@ -114,6 +153,15 @@ COMMENT: ------------------ Test program -----------------------
 : .ELSE-OR      ."  ELSE-OR " ;
 : THEN-AND      \ THEN-AND COMPILE .THEN-AND ; IMMEDIATE
 : ELSE-OR       \ ELSE-OR  COMPILE .ELSE-OR ; IMMEDIATE
+
+: .ALL{         ." ALL{ " ;
+: .}ALL?        ." }ALL? " ;
+: ALL{          \ ALL{  COMPILE .ALL{  ; IMMEDIATE
+: }ALL?         \ }ALL? COMPILE .}ALL? ; IMMEDIATE
+: .ANY{         ." ANY{ " ;
+: .}ANY?        ." }ANY? " ;
+: ANY{          \ ANY{  COMPILE .ANY{  ; IMMEDIATE
+: }ANY?         \ }ANY? COMPILE .}ANY? ; IMMEDIATE
 
 : TT   TRUE  DUP .T/F ;
 : FF   FALSE DUP .T/F ;
@@ -139,14 +187,50 @@ COMMENT: ------------------ Test program -----------------------
         TT ANDTHEN TT ANDTHEN TT ANDTHEN
         FF ORELSE FF ORELSE TT ORELSE FF ELSE-OR  ANDTHEN FF THEN-AND =.T/F ;
 
+: TEST10
+        ALL{
+             TT ANDTHEN 
+             TT ANDTHEN CR
+             ANY{
+                 FF ORELSE
+                 FF ORELSE
+                 TT ORELSE
+                 TT ORELSE
+                 TT ORELSE
+                 TT
+             }ANY?      CR
+             ANDTHEN
+             FF
+             ANDTHEN
+             TT
+             ANDTHEN
+             FF
+        }ALL?   =.T/F ;
+: TEST11
+        ALL{
+                TT ANDTHEN
+                TT ANDTHEN CR
+                ALL{
+                        TT ANDTHEN
+                        TT ANDTHEN
+                        TT
+                }ALL?   CR
+                ANDTHEN
+                FF
+        }ALL?   =.T/F ;
+
 CR .( ----- Testing ANDTHEN ----- ) CR
 1 . TEST1 CR 2 . TEST2 CR 3 . TEST3 CR 4 . TEST4 CR 
 .( ----- Testing ORELSE -----) CR
 1 . TEST5 CR 2 . TEST6 CR 3 . TEST7 CR 4 . TEST8 CR 
 .( ----- Mixing Testing -----) CR
-TEST9
+TEST9 CR
+.( ----- Other testings -----) CR
+.( TEST10 : ) TEST10 CR
+.( TEST11 : ) TEST11 CR
 
 FORGET .ANDTHEN
 
 COMMENT;
+
 

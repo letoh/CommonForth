@@ -230,18 +230,30 @@ CR
 	 REPEAT ; PSEE TEST40
 
 .( * The following one is an illegal syntax, but it can be seen ... ) CR
-: TEST41 AFT THEN ; PSEE TEST41 // This is an illegal syntax, but it can be seen.
+: TEST41 AFT 1 2 3 THEN ; PSEE TEST41 // This is an illegal syntax, but it can be seen.
+: TEST41.5 AHEAD 1 2 3 THEN ; PSEE TEST41.5 // This one is legal.
 
 .( * The followings are ambigious conditions; they are resolved by several ) CR
 .(   tries of rediscompilations ... ) CR
 .( [ SWAP -ROT == ROT SWAP ] ) CR
 : TEST42
-	TRUE IF WORDS ELSE DUP SWAP ENDIF
-	BEGIN -ROT WHILE -ROT REPEAT ; PSEE TEST42
+	TRUE IF
+           WORDS 
+        ELSE 
+           DUP SWAP
+        ENDIF
+	BEGIN 
+           -ROT 
+        WHILE 
+           -ROT
+        REPEAT ; PSEE TEST42
 
 : TEST43
-	TRUE FALSE 1 2 3
-	SWAP BEGIN -ROT 1 2 3 4 UNTIL ; PSEE TEST43
+	TRUE FALSE 1 2 
+        3  SWAP
+        BEGIN 
+           -ROT 1 2 3 4 
+        UNTIL ; PSEE TEST43
 
 : TEST44 
 	IF
@@ -258,5 +270,22 @@ CR
 	ELSE
 	   1234
 	ENDIF ; PSEE TEST44
+
+.( * The following demonstrate the difference between AFT..THEN and AHEAD..THEN)
+CR   // 01/24/'97
+: TEST45
+        1 FOR 
+           AFT
+             3
+           THEN
+           4
+        NEXT ; PSEE TEST45
+: TEST46
+        1 FOR
+           AHEAD
+              3
+           THEN
+           4
+        NEXT ; PSEE TEST46
 
 

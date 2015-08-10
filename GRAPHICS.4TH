@@ -8,24 +8,29 @@
 //    ... even with no modification at all.
 //
 //						Written by  : Luke Lee
-//						Version     : 1.1
-//						Last update : 04/16/'96
+//						Version     : 1.2
+//						Last update : 02/14/'97
+//						     update : 04/16/'96
 //						     update : 01/04/'96
+//  [02/14/'97] : Add DJGPP_V2 version.
 
 CR .( * Loading INVOKEC.4TH and DOSCMD.4TH ...)
 NEEDS INVOKEC.4TH
 NEEDS DOSCMD.4TH
 .( ... Loaded ) CR
 
-#DEFINED WATCOM_C/C++ #IF
- .( * Loading WCCGRAPH.4TH ...)
- NEEDS WCCGRAPH.4TH
+#DEFINED DJGPP_V2 #IF
+ .( * Loading GRX20.4TH ...)
+ NEEDS GRX20.4TH
 #ELSE #DEFINED DJGPP_GO32 #IF
  .( * Loading GRX.4TH ...)
  NEEDS GRX.4TH
+#ELSE #DEFINED WATCOM_C/C++ #IF
+ .( * Loading WCCGRAPH.4TH ...)
+ NEEDS WCCGRAPH.4TH
 #ELSE
  .( * No suitable graphics interface implemented.) BEEP CR ABORT
-#ENDIF #ENDIF
+#ENDIF #ENDIF #ENDIF
 .( ... Loaded ) CR
 
 // ////////////////////////////////////////////////////////////////////// //
@@ -83,46 +88,46 @@ COMMENT: // //////////////////////////////////////////////// //
 // Flag for using GRAPHICS.4TH default font or not .
   GUseDefaultFont? ( a VALUE )
 
- : GInitialize     (( video_mode #columns #rows -- ))
- : GUninitialize   (( -- ))	// back to text mode	
+ : GInitialize     ( video_mode #columns #rows -- )
+ : GUninitialize   ( -- )	// back to text mode	
 // There are two set of drawing words, one is color parameterred.
- : GSetColor	   (( color -- ))
- : GGetColor	   (( -- color ))
- : GDrawPoint      (( x y -- ))
- : GDrawLine       (( x0 y0 x1 y1 -- ))
- : GDrawRectangle  (( x0 y0 x1 y1 -- ))
- : GFillRectangle  (( x0 y0 x1 y1 -- ))
+ : GSetColor	   ( color -- )
+ : GGetColor	   ( -- color )
+ : GDrawPoint      ( x y -- )
+ : GDrawLine       ( x0 y0 x1 y1 -- )
+ : GDrawRectangle  ( x0 y0 x1 y1 -- )
+ : GFillRectangle  ( x0 y0 x1 y1 -- )
 // Color parameterred :
- : GDrawCPoint     (( x y color -- ))
- : GDrawCLine      (( x0 y0 x1 y1 color -- ))
- : GDrawCRectangle (( x0 y0 x1 y1 color -- ))
- : GFillCRectangle (( x0 y0 x1 y1 color -- ))
+ : GDrawCPoint     ( x y color -- )
+ : GDrawCLine      ( x0 y0 x1 y1 color -- )
+ : GDrawCRectangle ( x0 y0 x1 y1 color -- )
+ : GFillCRectangle ( x0 y0 x1 y1 color -- )
 
- : GImageSize	   (( x0 y0 x1 y1 -- n ))
- : GGetImage       (( left top right bottom *image -- ))
- : GPutImage       (( left top *image op -- )) MUST have XOR-put !!
- : GMoveImage	   (( destX destY srcX0 srcY0 srcX1 srcY1 -- ))  // optional
+ : GImageSize	   ( x0 y0 x1 y1 -- n )
+ : GGetImage       ( left top right bottom *image -- )
+ : GPutImage       ( left top *image op -- ) MUST have XOR-put !!
+ : GMoveImage	   ( destX destY srcX0 srcY0 srcX1 srcY1 -- )  // optional
  
 // Read Graphics region/size :
- : GSizeX	   (( -- SizeX ))
- : GSizeY	   (( -- SizeY ))
- : GMaxX	   (( -- MaxX ))  which is (GSizeX - 1)
- : GMaxY	   (( -- MaxY ))  which is (GSizeY - 1)
+ : GSizeX	   ( -- SizeX )
+ : GSizeY	   ( -- SizeY )
+ : GMaxX	   ( -- MaxX )  which is (GSizeX - 1)
+ : GMaxY	   ( -- MaxY )  which is (GSizeY - 1)
 
- : GOutChar	   (( x0 y0 ch -- ))
+ : GOutChar	   ( x0 y0 ch -- )
  
 // Text colors :
- : GGetForeColor   (( -- fgcolor )) 
- : GGetBackColor   (( -- bgcolor )) 
- : GGetTextColor   (( -- fgcolor bgcolor ))
- : GSetForeColor   (( fgcolor -- )) 
- : GSetBackColor   (( bgcolor -- )) 
- : GSetTextColor   (( fgcolor bgcolor -- ))
+ : GGetForeColor   ( -- fgcolor )
+ : GGetBackColor   ( -- bgcolor )
+ : GGetTextColor   ( -- fgcolor bgcolor )
+ : GSetForeColor   ( fgcolor -- ) 
+ : GSetBackColor   ( bgcolor -- ) 
+ : GSetTextColor   ( fgcolor bgcolor -- )
 
 ;COMMENT // //////////////////////////////////////////////// //
 
-G640x480x16 VALUE  GDefaultMode
-0  	    VALUE  GCurrentMode	// default text-mode
+G640x480x256 VALUE  GDefaultMode
+0  	     VALUE  GCurrentMode        // default text-mode
 
 ONLY GRAPHICS ALSO HIDDEN ALSO DEFINITIONS
 
@@ -525,27 +530,32 @@ DEFER TEXTMODE-HOOK	0 0 #PARMS // Hook to leave TEXT-MODE
 	0  0  G_cell_width G_cell_height G_WHITE GFillCRectangle
 	0 DUP  G_cell_width  G_CursorScanEnd G_CursorScanStart -
 	2DUP 0 DUP 2SWAP GImageSize malloc DUP  to  G_NormCursorImageBuf
-	DUP IF  GGetImage  ELSE  5DROP  ENDIF 
-	0 DUP  G_cell_width  G_cell_height 2/ 
-	2DUP 0 DUP 2SWAP GImageSize malloc DUP  to  G_HalfCursorImageBuf
+	DUP IF   GGetImage
+        ELSE     5DROP TRUE ABORT" * No memory for graphics cursor !" 
+        ENDIF
+	0 DUP  G_cell_width  G_cell_height 2/
+	2DUP 0 DUP 2SWAP GImageSize malloc DUP
+        DUP 0= IF  DROP G_NormCursorImageBuf  ENDIF  to  G_HalfCursorImageBuf
 	DUP IF  GGetImage  ELSE  5DROP  ENDIF
 	0 DUP G_cell_width  G_cell_height
-	2DUP 0 DUP 2SWAP GImageSize malloc DUP  to  G_BigCursorImageBuf
+	2DUP 0 DUP 2SWAP GImageSize malloc DUP
+        DUP 0= IF  DROP G_NormCursorImageBuf  ENDIF  to  G_BigCursorImageBuf
 	DUP IF  GGetImage  ELSE  5DROP  ENDIF
 	0 0 GMaxX GMaxY G_BLACK GFillCRectangle
 	G_NormCursor
 	TRUE => GModeNow? 
-	GRAPHICSMODE-HOOK ;
+	GRAPHICSMODE-HOOK 
+        ;
 
 : TEXT-MODE	(| -- |)
 	GModeNow? NOT IF  CLS EXIT  ENDIF
 	HOOK-TEXTMODE
 	0 0 GMaxX GMaxY G_BLACK GFillCRectangle
 	G_NormCursorImageBuf IF  G_NormCursorImageBuf free  ENDIF
-	G_HalfCursorImageBuf IF	 G_HalfCursorImageBuf free  ENDIF
-	G_BigCursorImageBuf  IF	 G_BigCursorImageBuf  free  ENDIF
 	0 to G_NormCursorImageBuf
+	G_HalfCursorImageBuf IF	 G_HalfCursorImageBuf free  ENDIF
 	0 to G_HalfCursorImageBuf
+	G_BigCursorImageBuf  IF	 G_BigCursorImageBuf  free  ENDIF
 	0 to G_BigCursorImageBuf
 	CloseASCIICache
 	GUninitialize

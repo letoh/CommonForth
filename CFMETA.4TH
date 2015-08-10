@@ -1,73 +1,43 @@
-// Meta compiler for Common Forth 1.6X
-                                        // Version    :  1.66
-                                        // Written by :  Luke Lee
-                                        // Last update : 12/25/'95
+// Meta compiler for Common Forth 1.7X
+					// Version    :  1.70
+					// Written by :  Luke Lee
+					// Last update : 02/09/'97
 
      // Detail steps ( for manual meta-compilation ) :
-     //   1. GO32 CF ................... ..... CF 1.6X, under MSDOS
+     //   1. CF.EXE .......................... CF 1.7X, under MSDOS
      //   2. FLOAD CFMETA.4TH ................ loading this meta compiler
-     //   3. AUTOMETA OFF .................... turn off autometa facility
-     //   4. META1 ........................... start meta compiling pass 1
-     //   5. FLOAD HI.4TH .................... after new system starts up
-     //   6. FLOAD CFMETA.4TH ................ same as step 1.
-     //   7. AUTOMETA OFF .................... same as step 3.
-     //   8. META2 ........................... meta compiling pass 2
-     //   9. FLOAD HI.4TH .................... for obtaining FSAVE ...etc.
-     //  10. FSAVE BYE' ...................... save image and quit.
+     //   3. META1 ........................... start meta compiling pass 1
+     //   4. FLOAD HI.4TH .................... after new system starts up
+     //   5. FLOAD CFMETA.4TH ................ same as step 1.
+     //   6. META2 ........................... meta compiling pass 2
+     //   7. FLOAD HI.4TH .................... for obtaining FSAVE ...etc.
+     //   8. FSAVE BYE  ...................... save image and quit.
 
      // Quick steps ( for automatic meta-compilation ) :
-     //   1. GO32 CF ......................... CF 1.6X, under MSDOS
-     //   2. FLOAD CFMETA  ................... steps 2,4,5,6,8,9.
-     //   3. FSAVE BYE' ...................... step 10.
+     //   1. CF.EXE .......................... CF 1.7X, under MSDOS
+     //   2. FLOAD METASAVE .................. steps 2...8.
 
 ONLY FORTH ALSO DEFINITIONS
 
 TRACER/RESET    // no tracing now 
+#DEFINED SEE-MACROS #IF
+   SEE-MACROS OFF       // prevent any registration of macros for SEE
+#ENDIF
 
 NEEDS CPU80486.4TH
 
-VARIABLE CPU
-: .386  386 CPU ! ; IMMEDIATE
-: .486  486 CPU ! ; IMMEDIATE
-: CPU?  CPU @ ; IMMEDIATE
-: .386? \ CPU? 386 = ; IMMEDIATE
-: .486? \ CPU? 486 = ; IMMEDIATE
-
-.386    // for 386 machines, modify this to .386
-
-CR CR 
-.( ********************************************* ) CR
-.( ** Currently selecting .386 as target code ** ) CR
-.( ********************************************* ) CR
-
 VARIABLE AUTOMETA
-AUTOMETA ON
+VARIABLE AUTOSAVE       // 02/09/'97
+AUTOMETA OFF
+AUTOSAVE OFF
 
-: WriteCR (( T/F -- ))
-        IF 13 Keyboard! DROP ENDIF ; 1 0 #PARMS
+POSTFIX SYNTAX
 
-: WriteKeyboard (( str len -- T/F ))    // MUST BE ASCII string
-      // Return FALSE if only partial string written.   
-      // Return non-FALSE if complete string written.
-        DUP 0> IF
-           1- FOR 
-              DUP C@ Keyboard!
-              WHILE
-                1+
-           NEXT
-                TRUE
-              ELSE      // keyboard buffer full
-                FALSE
-              THEN
-           NIP
-        ELSE
-           2DROP TRUE
-        ENDIF ; 2 1 #PARMS
-        
 DECIMAL
 
-1021        CONSTANT MAGIC-NUMBER  // key for hash function
-#VOCS CELL* CONSTANT |VOCS|        // size of vocabulary stack
+$140000      CONSTANT CF-SYSTEM-BASE-ADDRESS
+1021         CONSTANT MAGIC-NUMBER  // key for hash function
+#VOCS CELL*  CONSTANT |VOCS|        // size of vocabulary stack
 BASE-ADDRESS CONSTANT OLD-BASE-ADDRESS
 
 VARIABLE T-TIB
@@ -76,87 +46,100 @@ VARIABLE ^doUSER
 // Variables initialized by META :
 VARIABLE TCP0   VARIABLE TRP0   VARIABLE TSP0   VARIABLE TUP0
 VARIABLE ^COLD
+0 VALUE  T-BASE-ADDRESS         // 02/09/'97
 
-: USER, (( <string> -- )) // defining words for 'user variable compilers'
-        CREATE ^UP @ , CELL ^UP +! IMMEDIATE
-        DOES> ^doUSER @ DUP 0= ABORT" ^doUSER not initialized yet"
-              compile,
-              @ ,   0 1 #PARMS ; 0 0 #PARMS
+// Simulate loader's command line parameters    // 02/09/'97
+CREATE AUTOMETA_ARGV[1]    256 CELL+ ALLOT      0 AUTOMETA_ARGV[1] C!
+CREATE AUTOMETA_ARGV       NULL$ , AUTOMETA_ARGV[1] 1+ ,
 
-: COPY-LoaderEnviron    (| newcp0 -- |)
-        OLD-BASE-ADDRESS |INIT-ENVIRON
-        newcp0 |INIT-ENVIRON    SIZEOF LoaderEnviron LITERAL   MOVE ;
+: USER, ( <string> -- ) // defining words for 'user variable compilers'
+	CREATE ^UP @ , CELL ^UP +! IMMEDIATE
+	DOES> ^doUSER @ DUP 0= ABORT" ^doUSER not initialized yet"
+	      compile,
+	      @ ,   0 1 #PARMS ; 0 0 #PARMS
+
+: COPY-LoaderEnviron    (| newcp0 -- |)         // 02/09/'97 modified
+	OLD-BASE-ADDRESS |INIT-ENVIRON
+	newcp0 |INIT-ENVIRON    SIZEOF LoaderEnviron LITERAL   MOVE
+        AUTOMETA @ IF
+            2              newcp0 |INIT-ENVIRON |ARGC  !
+            AUTOMETA_ARGV  newcp0 |INIT-ENVIRON |ARGV  !
+        ENDIF ;
 
 : doMETA  (| cp0 up0 sp0 rp0 hp0 -- |)
-        SINGLE
-        cp0 CP !   up0 TUP0 !                   // top down allocation
-        hp0 HP !   sp0 TSP0 !   rp0 TRP0 !      // bottom up allocation
-        cp0 |CODE&HEAD-SPACE    TCP0  !
-        cp0 |COLD-VECTOR        ^COLD !
-        cp0 |WORK-SPACE |TERMINAL-INPUT-BUFFER   T-TIB !
+        BASE-ADDRESS to OLD-BASE-ADDRESS                // 02/09/'97 modified
+        cp0 to T-BASE-ADDRESS cp0 to BASE-ADDRESS       // 02/09/'97 modified
 
-        CR ." Meta-compiling CF.4TH ..." CR
-        ONLY FORTH DEFINITIONS
-        FILENAMES OFF   " CF0.4TH" $FLOAD
-//      cp0 |INIT-ENVIRON   SIZEOF |INIT-ENVIRON LITERAL   0  FILL
-        CR ." ... Finish meta-compiling" CR
+	SINGLE
+	cp0 CP !   up0 TUP0 !                   // top down allocation
+	hp0 HP !   sp0 TSP0 !   rp0 TRP0 !      // bottom up allocation
+	cp0 |CODE&HEAD-SPACE    TCP0  !
+	cp0 |COLD-VECTOR        ^COLD !
+	cp0 |WORK-SPACE |TERMINAL-INPUT-BUFFER   T-TIB !
 
-        HEX ." Startup address = $" cp0 . CR
-        cp0 COPY-LoaderEnviron
+	CR ." Meta-compiling CF.4TH ..." CR
+	ONLY FORTH DEFINITIONS
 
-        CR ." New system starts ..." CR
-        cp0 EXECUTE ;
+        FILENAMES OFF " CF0.4TH" $FLOAD
+        FAIL-FLOAD @ IF
+           ONLY FORTH DEFINITIONS
+           OLD-BASE-ADDRESS to BASE-ADDRESS     // restore base address
+           AUTOMETA_ARGV[1] 0 OVER !  // use it as error message buffer
+           CRLF$ COUNT$+ " * META ERROR : Fail meta-compiling ." $+ 
+           CRLF$ COUNT$+ " * Please leave system as soon as possible." $+ 
+           BEEP$ COUNT$+ THROW
+        ENDIF
+	CR ." ... Finish meta-compiling" CR
+
+	HEX ." Startup address = $" cp0 . CR
+	cp0 COPY-LoaderEnviron
+
+	CR ." New system starts ..." CR
+        // $201C EXECUTE // current break_mark()'s address = $201C
+        ^COLD @ @EXECUTE        // 02/07/'97, prevent the need of BYE'
+        ;
 
 : STARBAR       CR  50 FOR ASCII * EMIT NEXT ;
 
-: META2 
-        AUTOMETA @ IF  " FLOAD HI.4TH" WriteKeyboard WriteCR  ENDIF
-        BASE-ADDRESS
-        BASE-ADDRESS |WORK-SPACE |USER-AREA
-        BASE-ADDRESS |WORK-SPACE |END-DATA-STACK
-        BASE-ADDRESS |WORK-SPACE |END-RETURN-STACK
-        BASE-ADDRESS |WORK-SPACE |END-FORTH-VOCTABLE
-        CR CR CR STARBAR
-        CR ." *          Meta  Compiling  ...  Pass 2           *"
-        STARBAR CR CR CR CR
-        doMETA ;
+: META2                         // 02/09/'97 modified
+	AUTOMETA @ IF
+            AUTOMETA_ARGV[1] " FLOAD HI.4TH " $+ 
+            AUTOSAVE @ IF    " FSAVE BYE" $+  ENDIF
+            NULL$ 1 $+ DROP
+        ENDIF
+	CR CR CR STARBAR
+	CR ." *          Meta  Compiling  ...  Pass 2           *"
+	STARBAR CR CR CR CR
 
-: META1
-        AUTOMETA @ IF  " FLOAD META2" WriteKeyboard WriteCR   ENDIF
-        HERE => BASE-ADDRESS
-        HERE  (( cp0 ))  
+	CF-SYSTEM-BASE-ADDRESS
+	CF-SYSTEM-BASE-ADDRESS |WORK-SPACE |USER-AREA
+	CF-SYSTEM-BASE-ADDRESS |WORK-SPACE |END-DATA-STACK
+	CF-SYSTEM-BASE-ADDRESS |WORK-SPACE |END-RETURN-STACK
+	CF-SYSTEM-BASE-ADDRESS |WORK-SPACE |END-FORTH-VOCTABLE
+	doMETA ;
+
+: META1                         // 02/09/'97 modified
+	AUTOMETA @ IF
+            AUTOMETA_ARGV[1]
+            " FLOAD HI.4TH NEEDS CPU80486.4TH WARNING OFF " $+
+            " NEEDS CFMETA.4TH AUTOMETA ON " $+
+            AUTOSAVE @ IF  " AUTOSAVE ON " $+   ENDIF
+            " META2" $+  NULL$ 1  $+ DROP
+        ENDIF
+	CR CR CR STARBAR
+	CR ." *          Meta  Compiling  ...  Pass 1           *"
+	STARBAR CR CR CR CR
+
+	HERE  ( cp0 )
 	HP @  SIZEOF HighMemoryMap LITERAL - 8 K - >R
-        R@ |USER-AREA		(( up0 ))
-        R@ |END-DATA-STACK	(( sp0 ))
-        R@ |END-RETURN-STACK	(( rp0 ))
-        R> |END-FORTH-VOCTABLE	(( hp0 ))
-        CR CR CR STARBAR
-        CR ." *          Meta  Compiling  ...  Pass 1           *"
-        STARBAR CR CR CR CR
-        doMETA ;
+	R@ |USER-AREA           ( up0 )
+	R@ |END-DATA-STACK      ( sp0 )
+	R@ |END-RETURN-STACK    ( rp0 )
+	R> |END-FORTH-VOCTABLE  ( hp0 )
+	doMETA ;
 
-: META  WARNING OFF META1 ;
-
-POSTFIX SYNTAX
-
-ASSEMBLER ALSO
-
-// The following macros are used in kernel CF0.4TH
-
-: $PUSHT
-        EBP     { EBP CELL - }  LEA
-        { EBP } EAX             MOV  
-        ; IMMEDIATE
-
-: $POPT // this routine takes 2 clock cycles in 80486 and 6 in 80386
-        EAX     { EBP }         MOV
-        EBP     { EBP CELL + }  LEA
-        ; IMMEDIATE
-
-: ??????        (( -- ? ? ? ? ? ? ))
-        EBP   { EBP 6 CELL* - } LEA // allocate 6 cells
-       { EBP 5 CELL* + }  EAX   MOV
-        ; IMMEDIATE
+: META     WARNING OFF AUTOMETA ON META1 ;      // 02/09/'97 modified
+: METASAVE AUTOSAVE ON META ;                   // 02/09/'97
 
 ONLY FORTH ALSO DEFINITIONS
 
@@ -201,8 +184,10 @@ USER,   'AT,            // 08-16-95
 USER,   'AT?,
 USER,   'RESET-LIST,    // 08/22/'95
 USER,   'UP>TASK,       // 10/10/'95
+USER,   'LastQuit,      // 02/02/'97
+USER,   'TOKEN,         // 02/08/'97
 
 CR CR .( ****   Common Forth Meta-compiler loaded   ****)
-CR .( AUTOMETA is currently ON, turn it off for manual meta-compilation. )
-CR .( Type "META" for meta-compiling. ) CR CR
+CR .( Type "META" for automatic meta-compiling. ) CR CR
 
+

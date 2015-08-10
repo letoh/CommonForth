@@ -1,14 +1,31 @@
-SECTIONS {
-  .text : { *(.text) ;
-            . = ALIGN( 0x1000 ) ;    
-          }
-  .data : { *(.ctor) *(.dtor) *(.data) ;
-            . = ALIGN( 0x1000 ) ;    
-          }
-  .bss  : { *(.bss) *(COMMON) ;
-            . = ABSOLUTE( 0x140000 ) ;
-            _CF_SYSTEM_SPACE = . ;
-            . = . + 0x400000 + 4096 ;
-          }
+OUTPUT_FORMAT("coff-go32")
+ENTRY(start)
+SECTIONS
+{
+  .text  0x1000+SIZEOF_HEADERS : {
+    *(.text)
+    etext  =  . ; _etext = .;
+    . = ALIGN(0x200);
+  }
+  .data  ALIGN(0x200) : {
+    djgpp_first_ctor = . ;
+    *(.ctor)
+    djgpp_last_ctor = . ;
+    djgpp_first_dtor = . ;
+    *(.dtor)
+    djgpp_last_dtor = . ;
+    *(.data)
+     edata  =  . ; _edata = .;
+     . = ALIGN(0x200);
+  }
+  .bss  SIZEOF(.data) + ADDR(.data) :
+  { 					
+    *(.bss)
+    *(COMMON)
+     end = . ; _end = .;
+     . = 0x13F000 + 0x400000 + 0x2000 - SIZEOF(.data) - ADDR(.data) ;
+     . = ALIGN(0x200);
+  }
 }
+
 

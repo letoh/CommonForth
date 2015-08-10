@@ -1,8 +1,8 @@
 // Decompiler for Common Forth Experiment Systems
 
                                 // Written by  : Luke Lee	
-				// Version     : 1.57
-				// Last update : 09/19/'96
+				// Version     : 1.60
+				// Last update : 01/25/'97
 
 // Modification reports after complete version 1.5 on 01/17/'95
 //   [08/06/'95] 1. Clearer comments for this program.
@@ -16,19 +16,46 @@
 //   [05/10/'96] Since the control structure words now lay down two
 //               elements on data stack, the ... >R ... [ HERE ] ... NEXT ...
 //               is no longer valid and should use [ 0 HERE ] instead.
-//   [09/19/'96] Add extra macros .
+//   [09/19/'96] (v1.57) Add extra macros . (v1.57)
+//   [01/19/'97] (v1.57) Add new VCPU instructions [ exit ] and [ nop ] .
+//   [01/23/'97] (v1.57) Add CheckImmediate flag for LL(k)Gen.
+//   [01/24/'97] (v1.60) Modify [ AFT(..THEN) ] and [ AFT..THEN? ] to
+//               distinguish AFT..THEN and AHEAD..THEN .
+//               * Also add words to see DEFER words.
+//               * Seen (LEAVE)/(?LEAVE) to be LEAVE/?LEAVE.
+//   [01/25/'97] Enhance analyst table facilities, modify [ (Analyze) ]
+//               and many others. Add more defer words for programmers
+//               to enhance this discompiler.
 
 // The situation here is similar to disassembler while variable length
 // instructions exists but here it is macros.
 
 // Interface :
-//    SEE	 : Take name and decompile it .
-//   <SEE>	 : (( ca -- ))
+//    SEE	 : Take name and decompile it . A deferred word.
+//   <SEE>	 : ( ca -- )
 //		   Take ca and decompile it . 
 //		   Example : ' WORDS <SEE>  is equivalent to  SEE WORDS
+//    |SEE|      : ( ca length -- )
+//                 Discompile codes between [ ca , ca+length ] .
 //    SEE-MACROS : Flag in variable, default value is ON
 //			Does further macros need to be recoginized ?
 //			Or just leave them as INLINEs ?
+// Programmer Interface : 01/24,25/'97
+//  for extending the power of SEE.
+//    PreDiscompile     ( ca-start ca-end -- ca-start' ca-end' )
+//                   Take two arguments, two address for codes,
+//                   Return two arguments for further discompilation,
+//                   and these two address can be modified according to need.
+//    PostDiscompile    ( ca' -- ca'' )
+//                   Take two arguments, ca' is the next code address after
+//                   ca-end' in PreDiscompile.
+//    LinkAnalysts      ( TIB: table_name )
+//                   Redirect analyst table.
+//    ForwardResolver   ( ctrl_type -- continue? )
+//                   Resolve forward info on AnaStack, return TRUE
+//                   if handled. This routine should perform AnaStack::Pop
+//                   if a forward can be handled.
+//    .Source    : A deferred word, for extending this discompiler.
 
 // If you turn REG-SEE-MACROS OFF, you will see a lot of inlines while
 // further macros are defined after SEE.4TH is loaded. ( like 387FLOAT.4TH )
@@ -69,12 +96,12 @@ STRUCT: MACRO-NODE:
 MACRO-TREE SIZEOF MACRO-TREE 0 FILL
 MACRO-TREE  MACRO-TREE |PARENT  !
 
-: NEW-CHILD     (( node byteValue -- node' ))
+: NEW-CHILD     ( node byteValue -- node' )
         SWAP HERE >R
-        SIZEOF MACRO-NODE: LITERAL DUP ALLOT            (( c nod siz )R: nod )
-        R@ SWAP 0 FILL                                  (( c node )R: node' )
+        SIZEOF MACRO-NODE: LITERAL DUP ALLOT    ( c nod siz ) // R: nod
+        R@ SWAP 0 FILL                          ( c node )    // R: node'
         DUP R@ |PARENT !
-        (( newnode )) |CHILD-LIST DUP @ R@ |NEXT-NODE !
+        ( newnode ) |CHILD-LIST DUP @ R@ |NEXT-NODE !
         R@ SWAP !       // newnode became the head of child-list
         R@ |CONTENT C!
         R> ; 2 1 #PARMS
@@ -92,7 +119,7 @@ MACRO-TREE  MACRO-TREE |PARENT  !
 
 : SEARCH-THREAD		RECURSIVE
 	(| ca node len | currbyte currnode -- ca' stop_node |)
-     	(( not-found: ca node len -- ca' node' ))
+     	( not-found: ca node len -- ca' node' )
 
      // * The only way to decide whether the terminated node is a macro or
      // not is to check the |ASSOC-MACRO-HEAD and see if it is zero.
@@ -122,7 +149,7 @@ MACRO-TREE  MACRO-TREE |PARENT  !
 	ca   MACRO-TREE   codsize  SEARCH-THREAD  => stop_node => ca'
 	ha  adrMode  ca'  stop_node  codsize ca' ca - -  BUILD-NODES ;
 	
-: REGISTER-MACROS:  (( addrMode -- )TIB: <macro-name> <macro-name> )
+: REGISTER-MACROS:  ( addrMode -- ) // TIB: <macro-name> <macro-name>
         >R
         BEGIN
           >IN @   BL WORD COUNT NIP   SWAP >IN !
@@ -132,7 +159,7 @@ MACRO-TREE  MACRO-TREE |PARENT  !
 
 ALSO FORTH DEFINITIONS
 
-: MACRO	(( -- )) // only zero-addressing macros could be registerred.
+: MACRO	( -- ) // only zero-addressing macros could be registerred.
 	MACRO
 	SEE-MACROS @ IF
 	    ZA LAST @ HEAD> REGISTER-MACRO
@@ -151,7 +178,7 @@ BUG-WARNING ON
  ZA  REGISTER-MACROS:   CELL+  CELL-  CELL*  CELL/  2*  2/  1+  1-
  ZA  REGISTER-MACROS:   RP@  RP!  >R  R>  R@  RDROP  SP@  SP!
  ZA  REGISTER-MACROS:   UP@  UP!  EXECUTE  @EXECUTE
- ZA  REGISTER-MACROS:   PC@  PH@  P@  PC!  PH!  P!  exit
+ ZA  REGISTER-MACROS:   PC@  PH@  P@  PC!  PH!  P!  exit  nop
  ZA  REGISTER-MACROS:   <=  >=  <>  U>=  U<=  0>=  0<=
 
  ZA  REGISTER-MACROS:   C(++)invoke  256*  256/  2DUP
@@ -162,7 +189,7 @@ BUG-WARNING ON
  1AI REGISTER-MACROS:   (LIT)  doUSER
 
 // 1 addressing instructions, PC-relative value followed : 
- 1AR REGISTER-MACROS:   BRANCH  ?BRANCH  JT=0  JT<>0  next
+ 1AR REGISTER-MACROS:   BRANCH  ?BRANCH  JT=0  JT<>0  next  call
 
 // ///////////////////////////////////////////////////////////////////////////
 //              Data structure for discompiled codes
@@ -205,6 +232,8 @@ STRUCT: CodeItem
 0 CONSTANT Codes // Buffer for saving discompiled data. 
 0 CONSTANT CodeItemTrailer
 
+TRUE VALUE CheckImmediate       // 01/23/'97 for LL(k)Gen
+
 CREATE CodeItemHeader
         SIZEOF CodeItem   ALLOT // dummy header
 HERE => Codes
@@ -213,7 +242,7 @@ HERE => CodeItemTrailer
         SIZEOF CodeItem   ALLOT // dummy trailer
 HERE CONSTANT EndDiscompBuffer
 
-: CleanDiscompBuffer (( -- ))
+: CleanDiscompBuffer ( -- )
         CodeItemHeader   EndDiscompBuffer OVER -    0 FILL ; 0 0 #PARMS
 CleanDiscompBuffer
 
@@ -224,21 +253,21 @@ CREATE AnalysisStack
 HERE => EndAnalysisStack        HERE => AnaStackPtr
 0 , 0 ,  // Store 2 zeros for return value while stack-empty
 
-: ()Codes     (( index -- ^codeItem ))
+: ()Codes       ( index -- ^codeItem )
         SIZEOF CodeItem LITERAL *  Codes  +  
 	DUP CodeItemTrailer > IF
 	   CR ." * Discompile buffer full. Cannot see such a large word." 
 	   CR ."   Modify 'MaxCode#' to a larger number." CR BEEP ABORT
 	ENDIF ; 1 1 #PARMS
 
-: LastCodeItem        (( -- ^codeitem ))
+: LastCodeItem  ( -- ^codeitem )
         CurrCodeItemIdx 1-  ()Codes  ; 0 1 #PARMS
 
-: after_macro   (( ca node -- ca' node ))
+: after_macro   ( ca node -- ca' node )
         SWAP OVER |ASSOC-MACRO-HEAD @ |SIZE @ + 1- // ca+macro_size-1 = ca'
         SWAP ; 2 2 #PARMS
 
-: TraceAncestor	(( node -- node' / 0  ))
+: TraceAncestor	( node -- node' / 0  )
         BEGIN
             |PARENT @   DUP MACRO-TREE <>
             WHILE
@@ -249,10 +278,10 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 	       DROP FALSE
             THEN ; 1 1 #PARMS
 
-: SearchMacro   (( ca len -- ca' node )not-found: ca len -- ca FALSE )
+: SearchMacro   ( ca len -- ca' node ) // not-found: ca len -- ca FALSE
 	OVER MACRO-TREE ROT SEARCH-THREAD
         DUP |ASSOC-MACRO-HEAD @ // if not found, assoc-head will be zero
-        (( ca ca' stopnode ha )fail: ca ca' node' 0 )
+        ( ca ca' stopnode ha ) // fail: ca ca' node' 0
         DUP IF
             DROP NIP after_macro
         ELSE  // back off till some ancestor is an valid macro
@@ -260,35 +289,38 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 	    TraceAncestor DUP IF  after_macro  ENDIF
         ENDIF ; 2 2 #PARMS
 
-: @Rel>Abs (( ca+1 -- ca+5 ca+5+[ca+1] ) Convert relative addr to absolute)
+: @Rel>Abs ( ca+1 -- ca+5 ca+5+[ca+1] ) // Convert relative addr to absolute
         DUP CELL+ SWAP @ OVER + ; 1 2 #PARMS
 
-: PrevWord (( codeitem -- codeitem' ))
+: 'sGotoAddress ( codeitem -- codeitem's_branching_address )
+        |AssocValue @ ; 1 1 #PARMS
+
+: PrevWord ( codeitem -- codeitem' )
         SIZEOF CodeItem LITERAL  -  CodeItemHeader  MAX ; 1 1 #PARMS
 
-: NextWord (( codeitem -- codeitem' ))
+: NextWord ( codeitem -- codeitem' )
         SIZEOF CodeItem LITERAL  +  EndDiscompBuffer MIN ; 1 1 #PARMS 
 
-: SetCodeItem   (( ha assocval type codeitem -- ))
+: SetCodeItem   ( ha assocval type codeitem -- )
         TUCK |CodeType C!
         TUCK |AssocValue !
         TUCK |AssocHead !
         0 SWAP |AuxDecom !  // this field is modified later
         ; 4 0 #PARMS
 
-: AddCodeItem   (( ha assocval type -- codeitem ))
+: AddCodeItem   ( ha assocval type -- codeitem )
         CurrCodeItemIdx ()Codes >R
         R@ SetCodeItem
         CurrCodeItemIdx 1+ => CurrCodeItemIdx
         R> ; 2 0 #PARMS
 
-: SetAuxDecompiler      (( ca codeitem -- ))
+: SetAuxDecompiler      ( ca codeitem -- )
         // Overwrite old aux-decompiler
         OVER ['] NOOP = IF  2DROP EXIT  ENDIF
         DUP |CodeType DUP C@ AUXDECOM OR SWAP C!
         |AuxDecom !  ; 2 0 #PARMS
 
-: InsertDecompiler      (( ca codeitem -- ))
+: InsertDecompiler      ( ca codeitem -- )
         // Insert an decompiler into CodeList, replace 'codeitem'.
         CurrCodeItemIdx 1+  =>  CurrCodeItemIdx
         DUP   DUP NextWord  OVER LastCodeItem NextWord SWAP -  CMOVE>
@@ -299,34 +331,34 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 
 // Analyze stack operation :
 
-: AnaStack::Reset       (( -- ))
+: AnaStack::Reset       ( -- )
         EndAnalysisStack =>  AnaStackPtr ; 0 0 #PARMS
 
-: AnaStack::Push        (( codeitem ctrl_structure_type -- ))
+: AnaStack::Push        ( codeitem ctrl_structure_type -- )
         AnaStackPtr  [ 2 CELL* ] LITERAL -  DUP  =>  AnaStackPtr
         AnalysisStack < ABORT" Decompiler analysis stack overflow!"
         AnaStackPtr 2!  ; 2 0 #PARMS
 
-: AnaStack::Top         (( -- codeitem ctrl_structure_type/0 0 ))
+: AnaStack::Top         ( -- codeitem ctrl_structure_type / 0 0 )
         AnaStackPtr 2@ ; 0 2 #PARMS
 
-: AnaStack::Pop         (( -- codeitem ctrl_structure_type ))
+: AnaStack::Pop         ( -- codeitem ctrl_structure_type )
         AnaStackPtr 2@
         AnaStackPtr  [ 2 CELL* ] LITERAL +  DUP  =>  AnaStackPtr
         EndAnalysisStack > ABORT" Decompiler analysis stack underflow!"  
         ; 0 2 #PARMS
 
-: ?Exceed_AnaStack      (( stkptr -- stkptr ))
+: ?Exceed_AnaStack      ( stkptr -- stkptr )
         DUP [ 2 CELL* ] LITERAL -   EndAnalysisStack   >
         ABORT" Exceed decompiler ayalysis stack range."  ; 1 1 #PARMS
 
-: AnaStack::Pick        (( n -- codeitem ctrl_structure_type/0 0 ))
+: AnaStack::Pick        ( n -- codeitem ctrl_structure_type/0 0 )
         2* CELL* AnaStackPtr +  ?Exceed_AnaStack  2@ ; 1 2 #PARMS
 
-: AnaStack::Put         (( codeitem ctrl_structure_type n -- ))
+: AnaStack::Put         ( codeitem ctrl_structure_type n -- )
         2* CELL* AnaStackPtr +  ?Exceed_AnaStack  2! ; 3 0 #PARMS
 
-: AnaStack::Depth       (( -- n ))
+: AnaStack::Depth       ( -- n )
         EndAnalysisStack AnaStackPtr - CELL/ 2/ ; 0 1 #PARMS
 
 // ///////////////////////////////////////////////////////////////////////////
@@ -334,36 +366,38 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 // ///////////////////////////////////////////////////////////////////////////
 
 
-: `   (( -- )TIB: name)  // Get head address of the following
+: `   ( -- ) // TIB: name  // Get head address of the following
         ' >HEAD ; 0 1 #PARMS
 
-: [`]   (( -- )TIB: name)  // Compile head address of the following
+: [`]   ( -- ) // TIB: name  // Compile head address of the following
         ` \ LITERAL ; IMMEDIATE
 
 1 VALUE #TABS
 
-: .1TAB (( -- )) 4 SPACES ; 0 0 #PARMS
-: .TABS (( -- )) #TABS 0 ?DO .1TAB LOOP ; 0 0 #PARMS
-: TAB++ (( -- )) #TABS 1+ [ 80 4 / ] LITERAL MIN => #TABS ; 0 0 #PARMS
-: TAB-- (( -- )) #TABS 1- 1 MAX => #TABS ; 0 0 #PARMS
-: NEXTROW  (( -- )) AT? DROP 0<> IF CR ENDIF ; 0 0 #PARMS
-: ?.TABS (( -- )) AT? DROP 0= IF .TABS ENDIF ; 0 0 #PARMS
+: .1TAB ( -- ) 4 SPACES ; 0 0 #PARMS
+: .TABS ( -- ) #TABS 0 ?DO .1TAB LOOP ; 0 0 #PARMS
+: TAB++ ( -- ) #TABS 1+ [ 80 4 / ] LITERAL MIN => #TABS ; 0 0 #PARMS
+: TAB-- ( -- ) #TABS 1- 1 MAX => #TABS ; 0 0 #PARMS
+: NEXTROW  ( -- ) AT? DROP 0<> IF CR ENDIF ; 0 0 #PARMS
+: ?.TABS ( -- ) AT? DROP 0= IF .TABS ENDIF ; 0 0 #PARMS
 
 // Display word
 
-: ?NextRow      (( len -- ))
+: ?NextRow      ( len -- )
         AT? DROP + 1+  80 >= IF  NEXTROW  ENDIF ; 1 0 #PARMS
 
-: ?NextRow.Str   (( str len -- ))
+: ?NextRow.Str   ( str len -- )
         DUP ?NextRow ?.TABS TYPE SPACE ; 2 0 #PARMS
 
-: ?Immediate    (( ha -- ))
-        DUP |ATTRIBUTE H@ IMMED AND IF 
-           DUP |NAME-LENGTH C@ 
-           " \ " ROT OVER + ?NextRow ?.TABS TYPE
+: ?Immediate    ( ha -- )
+        CheckImmediate IF       // 01/23/'97
+           DUP |ATTRIBUTE H@ IMMED AND IF 
+              DUP |NAME-LENGTH C@ 
+              " \ " ROT OVER + ?NextRow ?.TABS TYPE
+           ENDIF
         ENDIF DROP ; 1 0 #PARMS
 
-: .Word  (( codeitem -- )) 
+: .Word  ( codeitem -- ) 
         DUP |AssocHead @
         DUP ?Immediate |NAME-LENGTH COUNT ?NextRow.Str 
         DUP |CodeType C@ 
@@ -371,33 +405,33 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
         IF  SPACE DUP |AssocValue @ str ?NextRow.Str  ENDIF 
         DROP ; 1 0 #PARMS
 
-: .WordBranched (( codeitem -- )) // Optimized : CALL XXXX RET ==> JMP XXXX
+: .WordBranched ( codeitem -- ) // Optimized : CALL XXXX RET ==> JMP XXXX
         |AssocValue @ >HEAD DUP ?Immediate
         |NAME-LENGTH COUNT ?NextRow.Str ; 1 0 #PARMS
 
-: +string       (( ca -- ca' ))  COUNT + ; 1 1 #PARMS
-: +Zstring      (( ca -- ca' ))  +string 1+ ; 1 1 #PARMS
+: +string       ( ca -- ca' )  COUNT + ; 1 1 #PARMS
+: +Zstring      ( ca -- ca' )  +string 1+ ; 1 1 #PARMS
 
 // ///////////  Number literals and inline string literals :  ///////////////
 
-: .(LIT)        (( codeitem -- ))
+: .(LIT)        ( codeitem -- )
         |AssocValue @ str ?NextRow.Str ; 1 0 #PARMS
 
-: .'"'  (( -- )) ASCII " EMIT SPACE ; 0 0 #PARMS
-: .String       (( codeitem str0 len0 -- ))
+: .'"'  ( -- ) ASCII " EMIT SPACE ; 0 0 #PARMS
+: .String       ( codeitem str0 len0 -- )
         ROT OVER SWAP |Address @ CELL+ 1+ COUNT    // str0 len0 len0 str len
         ROT OVER + 1+ ?NextRow 2SWAP                  // str len str0 len0
         ?.TABS TYPE .'"'  TYPE  .'"' ; 3 0 #PARMS
 
-: .($") (( codeitem -- ))  " $" .String ; 1 0 #PARMS
-: .(")  (( codeitem -- ))  " " .String ; 1 0 #PARMS
-: .(Z$) (( codeitem -- ))  " Z$" .String ; 1 0 #PARMS
-: .(.") (( codeitem -- ))  " ." .String ; 1 0 #PARMS
-: .(ABORT")  (( codeitem -- )) " ABORT" .String ; 1 0 #PARMS
+: .($") ( codeitem -- )  " $" .String ; 1 0 #PARMS
+: .(")  ( codeitem -- )  " " .String ; 1 0 #PARMS
+: .(Z$) ( codeitem -- )  " Z$" .String ; 1 0 #PARMS
+: .(.") ( codeitem -- )  " ." .String ; 1 0 #PARMS
+: .(ABORT")  ( codeitem -- ) " ABORT" .String ; 1 0 #PARMS
 
 // /////////////////////////  Control structures :  ////////////////////////
 
-: control{      (( codeitem n -- ))
+: control{      ( codeitem n -- )
         NEXTROW ?.TABS
         CASE
           1 OF ." IF" ENDOF
@@ -409,10 +443,11 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
           7 OF ." BEGIN  // <-- indefinite" ENDOF
           8 OF DUP .Word ENDOF // CREATE ... DOES>
 	  9 OF ." [ 0 HERE ]" ENDOF //  >R ... [ 0 HERE ] ... NEXT  05/10/'96
+         10 OF ." AHEAD" ENDOF
         ENDCASE
         .1TAB TAB++ NEXTROW DROP ; 2 0 #PARMS
 
-: }control{     (( codeitem n -- ))
+: }control{     ( codeitem n -- )
         TAB-- NEXTROW ?.TABS
         CASE
           1 OF ." ELSE" ENDOF
@@ -421,7 +456,7 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
         ENDCASE
         TAB++ NEXTROW DROP ; 2 0 #PARMS
 
-: }control (( codeitem n -- ))
+: }control ( codeitem n -- )
         TAB-- NEXTROW ?.TABS
         CASE
           1 OF ." ENDIF" ENDOF
@@ -434,83 +469,107 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
           8 OF ." THEN" ENDOF
         ENDCASE NEXTROW DROP ; 2 0 #PARMS
 
-: .IF           (( codeitem -- )) 1 control{ ; 1 0 #PARMS
-: .ELSE         (( codeitem -- )) 1 }control{ ; 1 0 #PARMS
-: .ENDIF        (( codeitem -- )) 1 }control ; 1 0 #PARMS
+: .IF           ( codeitem -- ) 1 control{ ; 1 0 #PARMS
+: .ELSE         ( codeitem -- ) 1 }control{ ; 1 0 #PARMS
+: .ENDIF        ( codeitem -- ) 1 }control ; 1 0 #PARMS
 
-: .BEGIN        (( codeitem -- )) 2 control{ ; 1 0 #PARMS
-: .WHILE        (( codeitem -- )) 2 }control{ ; 1 0 #PARMS
-: .REPEAT       (( codeitem -- )) 2 }control ; 1 0 #PARMS
+: .BEGIN        ( codeitem -- ) 2 control{ ; 1 0 #PARMS
+: .WHILE        ( codeitem -- ) 2 }control{ ; 1 0 #PARMS
+: .REPEAT       ( codeitem -- ) 2 }control ; 1 0 #PARMS
 
-: .UNTIL        (( codeitem -- )) 3 }control ; 1 0 #PARMS
+: .UNTIL        ( codeitem -- ) 3 }control ; 1 0 #PARMS
 
-: .AGAIN        (( codeitem -- )) 4 }control ; 1 0 #PARMS
+: .AGAIN        ( codeitem -- ) 4 }control ; 1 0 #PARMS
 
-: .FOR          (( codeitem -- )) 3 control{ ; 1 0 #PARMS
-: .[HERE]	(( codeitem -- )) 9 control{ ; 1 0 #PARMS
-: .NEXT         (( codeitem -- )) 5 }control ; 1 0 #PARMS
+: .FOR          ( codeitem -- ) 3 control{ ; 1 0 #PARMS
+: .[HERE]	( codeitem -- ) 9 control{ ; 1 0 #PARMS
+: .NEXT         ( codeitem -- ) 5 }control ; 1 0 #PARMS
 
-: .AFT          (( codeitem -- )) 6 control{ ; 1 0 #PARMS
-: .THEN         (( codeitem -- )) 8 }control ; 1 0 #PARMS
+: .AFT          ( codeitem -- ) 6 control{ ; 1 0 #PARMS
+: .AHEAD        ( codeitem -- ) 10 control{ ; 1 0 #PARMS
+: .THEN         ( codeitem -- ) 8 }control ; 1 0 #PARMS
 
-: TABcount      (( codeitem -- tab-count ))
+: TABcount      ( codeitem -- tab-count )
         |CodeType C@ 2/ 2/ 2/ 2/ ; 1 1 #PARMS
 
-: .?????'       (( codeitem .????? -- )) 
+: .?????'       ( codeitem .????? -- ) 
                 OVER TABcount
                 DUP FOR AFT  TAB--  THEN NEXT
                 -ROT EXECUTE
                 FOR   TAB++  NEXT ; 2 0 #PARMS
                 
-: .BEGIN'       (( codeitem -- )) 7 control{ ; 1 0 #PARMS
+: .BEGIN'       ( codeitem -- ) 7 control{ ; 1 0 #PARMS
 
-: .WHILE'       (( codeitem -- )) TAB++ .WHILE ; 1 0 #PARMS
+: .WHILE'       ( codeitem -- ) TAB++ .WHILE ; 1 0 #PARMS
 
-: .WHILE''      (( codeitem -- )) 
+: .WHILE''      ( codeitem -- ) 
         DUP TABcount FOR AFT  TAB--  THEN NEXT TAB++ .WHILE ; 1 0 #PARMS
 
-: .REPEAT'      (( codeitem -- )) 
+: .REPEAT'      ( codeitem -- ) 
         DUP .REPEAT TABcount FOR AFT TAB++ THEN NEXT ; 1 0 #PARMS
 
-: .NEXT'        (( codeitem -- )) ['] .NEXT  .?????' ; 1 0 #PARMS
-: .UNTIL'       (( codeitem -- )) ['] .UNTIL .?????' ; 1 0 #PARMS
-: .AGAIN'       (( codeitem -- )) ['] .AGAIN .?????' ; 1 0 #PARMS
+: .NEXT'        ( codeitem -- ) ['] .NEXT  .?????' ; 1 0 #PARMS
+: .UNTIL'       ( codeitem -- ) ['] .UNTIL .?????' ; 1 0 #PARMS
+: .AGAIN'       ( codeitem -- ) ['] .AGAIN .?????' ; 1 0 #PARMS
                                 
 
-: .THEN'        (( codeitem -- )) .THEN TAB-- ; 1 0 #PARMS
+: .THEN'        ( codeitem -- ) .THEN TAB-- ; 1 0 #PARMS
 
-: .DO           (( codeitem -- )) 4 control{ ; 1 0 #PARMS
-: .?DO          (( codeitem -- )) 5 control{ ; 1 0 #PARMS
-: .LOOP         (( codeitem -- )) 6 }control ; 1 0 #PARMS
-: .+LOOP        (( codeitem -- )) 7 }control ; 1 0 #PARMS
+: .DO           ( codeitem -- ) 4 control{ ; 1 0 #PARMS
+: .?DO          ( codeitem -- ) 5 control{ ; 1 0 #PARMS
+: .LOOP         ( codeitem -- ) 6 }control ; 1 0 #PARMS
+: .+LOOP        ( codeitem -- ) 7 }control ; 1 0 #PARMS
+: .LEAVE        ( codeitem -- ) DROP " LEAVE" ?NextRow.Str ; 1 0 #PARMS
+: .?LEAVE       ( codeitem -- ) DROP " ?LEAVE" ?NextRow.Str ; 1 0 #PARMS
 
-: .=>           (( codeitem -- )) DROP " => " ?NextRow.Str ; 1 0 #PARMS
-: .EXIT		(( codeitem -- )) DROP " EXIT" ?NextRow.Str ; 1 0 #PARMS
+: .=>           ( codeitem -- ) DROP " => " ?NextRow.Str ; 1 0 #PARMS
+: .EXIT		( codeitem -- ) DROP " EXIT" ?NextRow.Str ; 1 0 #PARMS
 
-: .ANDTHEN/ORELSE       (( codeitem str len -- ))
-                ?NextRow.Str NEXTROW DROP ; 3 0 #PARMS
-: .ANDTHEN      (( codeitem -- )) "   ANDTHEN" .ANDTHEN/ORELSE ; 1 0 #PARMS
-: .ORELSE       (( codeitem -- )) "   ORELSE" .ANDTHEN/ORELSE ; 1 0 #PARMS
-: .THEN-AND     (( codeitem -- )) "   THEN-AND" .ANDTHEN/ORELSE ; 1 0 #PARMS
-: .ELSE-OR      (( codeitem -- )) "   ELSE-OR" .ANDTHEN/ORELSE ; 1 0 #PARMS
+
+1 CONSTANT %andthen%                    // 01/24/'97
+2 CONSTANT %orelse%
+
+: .ANDTHEN/ORELSE       ( str len -- )
+                TAB-- NEXTROW ?.TABS
+                2 SPACES TYPE  SPACE TAB++ ; 2 0 #PARMS
+: FirstANDTHEN/ORELSE   ( codeitem type -- )
+                >R AnaStack::Top R@ <>  ORELSE   ( ci aci )
+                2DUP 'sGotoAddress SWAP 'sGotoAddress <>   ELSE-OR
+                IF
+                        OVER R@ AnaStack::Push  TAB++
+                ENDIF
+                2DROP RDROP ; 2 0 #PARMS
+
+: .ANDTHEN      ( codeitem -- )
+                %andthen% FirstANDTHEN/ORELSE
+                " ANDTHEN" .ANDTHEN/ORELSE ; 1 0 #PARMS
+: .ORELSE       ( codeitem -- )
+                %orelse% FirstANDTHEN/ORELSE
+                " ORELSE" .ANDTHEN/ORELSE ; 1 0 #PARMS
+: .THEN-AND     ( codeitem -- )
+                AnaStack::Pop 3DROP
+                " THEN-AND" .ANDTHEN/ORELSE TAB-- ; 1 0 #PARMS
+: .ELSE-OR      ( codeitem -- )
+                AnaStack::Pop 3DROP
+                " ELSE-OR" .ANDTHEN/ORELSE TAB-- ; 1 0 #PARMS
 
 // //////////////////////   Colon  Definitions   ////////////////////////
 
-: .In/Out       (( in/out char -- ))
+: .In/Out       ( in/out char -- )
         OVER $FF = IF
             2DROP ." ... "
         ELSE
             SWAP OVER + SWAP ?DO #I EMIT SPACE LOOP
         ENDIF ; 2 0 #PARMS
 
-: .StackMap     (( ha -- ))
-        .1TAB ." (( "
+: .StackMap     ( ha -- )
+        .1TAB ." ( "
         DUP |IN-PARMS C@ ASCII A .In/Out 
         ." -- "
         |OUT-PARMS C@ ASCII a .In/Out 
-        ." ))" ; 1 0 #PARMS
+        ." )" ; 1 0 #PARMS
 
-: .Semicolon    (( -- ))
+: .Semicolon    ( -- )
         CodeItemTrailer |AssocHead @ |ATTRIBUTE H@
         DUP IMMED AND
         IF " ; IMMEDIATE" ?NextRow.Str ELSE " ;" ?NextRow.Str ENDIF
@@ -520,20 +579,20 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
         IF " MACRO" ?NextRow.Str ENDIF
         CR ; 0 0 #PARMS
 
-: (.Colon)      (( -- ))
+: (.Colon)      ( -- )
         CodeItemHeader |AssocHead @ ." : " DUP .ID .StackMap ; 0 0 #PARMS 
 
-: .RecurseDef  (( -- ))
+: .RecurseDef  ( -- )
         (.Colon) .1TAB 
         TAB++ " RECURSIVE" ?NextRow.Str TAB-- NEXTROW ; 0 0 #PARMS
 
-: .Colon        (( -- ))
+: .Colon        ( -- )
         (.Colon) NEXTROW ; 0 0 #PARMS
 
 // //////////////////////   CREATE ... DOES>  :   ////////////////////////
 
-: .CREATE   (( codeitem -- )) 8 control{  ; 1 0 #PARMS
-: .DOES>    (( codeitem -- )) 3 }control{ ; 1 0 #PARMS
+: .CREATE   ( codeitem -- ) 8 control{  ; 1 0 #PARMS
+: .DOES>    ( codeitem -- ) 3 }control{ ; 1 0 #PARMS
 
 // Since DOES> lay down following codes : 
 //        CALL ;DOES 
@@ -541,17 +600,17 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 //        EXPAND R>     <--- the definition of the defined word
 // Use ;DOES to determine whether it is an defining word.
 
-: DefinedWord?  (( ca -- ca-of-DOES> T )OR: ca -- ca F )
+: DefinedWord?  ( ca -- ca-of-DOES> T ) // OR: ca -- ca F
       // Check words which are defined by Defining-words.
         DUP C@ %CALL% =
-      ANDTHEN           (( ca ))
+      ANDTHEN           ( ca )
         DUP 1+ @Rel>Abs NIP
         DUP CELL- CELL- @Rel>Abs NIP  ['] ;DOES  =
         DUP IF  ROT  ELSE  SWAP  ENDIF  DROP
       THEN-AND  ; 1 2 #PARMS
 
-: +DOES>    (( ca -- ca' )) // skip the data which DOES> layed.
-        CELL+ (( >CFA pointer ))
+: +DOES>    ( ca -- ca' ) // skip the data which DOES> layed.
+        CELL+ ( >CFA pointer )
         SIZEOF R> LITERAL + 1- ; 1 1 #PARMS
 
 // ////////////////////   VARIABLE / CONSTANT   ////////////////////////
@@ -559,38 +618,38 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 0 VALUE CurrWordStart  // These 2 values are initialized by "Discompile"
 0 VALUE CurrWordEnd
 
-: SetHeaderTrailer      (( head tail -- ))
-        CodeItemTrailer SetAuxDecompiler 
+: SetHeaderTrailer      ( head tail -- )
+        CodeItemTrailer SetAuxDecompiler
         CodeItemHeader  SetAuxDecompiler ; 2 0 #PARMS
 
-: .VARIABLE     (( -- ))
+: .VARIABLE     ( -- )
         ." VARIABLE / CREATE  "
         CodeItemHeader |AssocHead @ .ID ; 0 0 #PARMS
 
-: .Addr/content (( -- ))
+: .Addr/content ( -- )
         CR .1TAB ."  Variable address = " CodeItemHeader DUP |Address @ .
         ." ; content = " |AssocValue @ . CR ; 0 0 #PARMS
 
-: .CONSTANT     (( -- ))
+: .CONSTANT     ( -- )
         CodeItemHeader |AssocValue @ . SPACE 
         ." CONSTANT / VALUE  "
         CodeItemHeader |AssocHead @ .ID ; 0 0 #PARMS
 
-: .USER         (( -- ))
+: .USER         ( -- )
         ." USER  " CodeItemHeader |AssocHead @ .ID ; 0 0 #PARMS
 
-: Variable/Create       (( ca -- ca ))
+: Variable/Create       ( ca -- ca )
         DUP CodeItemHeader |Address !
         DUP @ CodeItemHeader |AssocValue !
         CurrWordStart >HEAD  CodeItemHeader |AssocHead  !
         ['] .VARIABLE  ['] .Addr/content  SetHeaderTrailer ; 1 1 #PARMS
 
-: Constant/Value        (( ca -- ca ))
+: Constant/Value        ( ca -- ca )
         DUP @ CodeItemHeader |AssocValue !
         CurrWordStart >HEAD  CodeItemHeader |AssocHead  !
         ['] .CONSTANT  ['] CR  SetHeaderTrailer ; 1 1 #PARMS
 
-: UserVariable          (( ca -- ca ))
+: UserVariable          ( ca -- ca )
       // doUSER is an 1-address macro
         CurrWordStart >HEAD  CodeItemHeader |AssocHead  !
         LastCodeItem |AssocValue @ UP@ +
@@ -603,10 +662,9 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 // ------------------------------------------------------------------------ //
 
 // These name have a clearer meaning :
-: 'sGotoAddress          |AssocValue @ ; 1 1 #PARMS
 : AnaStack::TopCodeItem  AnaStack::Top DROP ; 0 1 #PARMS
 
-: Ambigious	(( -- ))
+: Ambigious	( -- )
 	// ." * SEE : Ambigious condition, can't SEE this word." CR
 	AnaStack::Reset
 	ABORT ; 0 0 #PARMS
@@ -624,14 +682,14 @@ HERE => EndAnalysisStack        HERE => AnaStackPtr
 
 VARIABLE StopAtLast  // local flag for (ScanBackward) and ScanBackwardX
 
-: SkipSameAddr	(( codeitem -- codeitem' ))
+: SkipSameAddr	( codeitem -- codeitem' )
 	BEGIN
 	   DUP PrevWord |Address @  OVER |Address @ =
 	WHILE
 	   PrevWord
 	REPEAT ; 1 1 #PARMS
 
-: (ScanBackward)   (( codeitem -- codeitem' ))
+: (ScanBackward)   ( codeitem -- codeitem' )
         DUP 'sGotoAddress SWAP  // ca ci
         BEGIN
            2DUP |Address @ <=
@@ -644,15 +702,15 @@ VARIABLE StopAtLast  // local flag for (ScanBackward) and ScanBackwardX
               DROP THROW // throw back 'goto-address'  
            THEN ; 1 1 #PARMS
 
-: ScanBackwardI	 (( codeitem -- codeitem' ))
+: ScanBackwardI	 ( codeitem -- codeitem' )
       // immediate stop 
 	StopAtLast OFF (ScanBackward) ; 1 1 #PARMS
 
-: ScanBackwardL	 (( codeitem -- codeitem' ))
+: ScanBackwardL	 ( codeitem -- codeitem' )
       // stop at the last codeitem	
 	StopAtLast ON (ScanBackward) ; 1 1 #PARMS
 
-  1  CONSTANT  %aft-then
+  1  CONSTANT  %ahead/aft-then
   2  CONSTANT  %if-then
  11  CONSTANT  %while-else-then
  12  CONSTANT  %while-else-then'
@@ -668,44 +726,44 @@ VARIABLE StopAtLast  // local flag for (ScanBackward) and ScanBackwardX
 // control structure into 'AnaStack' .
 
 // <1>
-: AFT(..THEN)   (( codeitem -- codeitem' ))
-        ['] .AFT OVER SetAuxDecompiler
-        DUP %aft-then AnaStack::Push  ; 1 1 #PARMS
+: AHEAD/AFT(..THEN)   ( codeitem -- codeitem' )
+        ['] .AHEAD OVER SetAuxDecompiler
+        DUP %ahead/aft-then AnaStack::Push  ; 1 1 #PARMS
 
 // <2>
-: IF/WHILE..ELSE(..ENDIF/THEN)  (( codeitem -- codeitem' ))
+: IF/WHILE..ELSE(..ENDIF/THEN)  ( codeitem -- codeitem' )
       // Settle .ELSE only . So change AnaStack::Top's CodeItem entry 
       // but don't change its type so that "TryResolveForward" could
       // decide whether it is "..ELSE..THEN" or "..ELSE..ENDIF" .
         ['] .ELSE OVER SetAuxDecompiler
-        DUP AnaStack::Pop NIP AnaStack::Push (( change it's codeitem entry ))
+        DUP AnaStack::Pop NIP AnaStack::Push ( change it's codeitem entry )
         ; 1 1 #PARMS
 
 // <3>
-: Set.BEGIN     (( codeitem -- codeitem' ))
+: Set.BEGIN     ( codeitem -- codeitem' )
         DUP ScanBackwardI
         ['] .BEGIN SWAP InsertDecompiler
         NextWord  ; 1 1 #PARMS
 
-: BEGIN..UNTIL  (( codeitem -- codeitem' ))
+: BEGIN..UNTIL  ( codeitem -- codeitem' )
         Set.BEGIN  ['] .UNTIL OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <4>
-: BEGIN..AGAIN  (( codeitem -- codeitem' ))
+: BEGIN..AGAIN  ( codeitem -- codeitem' )
         Set.BEGIN  ['] .AGAIN OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <5>
-: AnaStack::TopCodeItem++       (( -- )) 
+: AnaStack::TopCodeItem++       ( -- ) 
    // The "Set.BEGIN" will insert an extra codeitem prior to ..WHILE.. ,
    // so the top element of analysis stack should be heighten .
         AnaStack::Pop >R NextWord R> AnaStack::Push  ; 0 0 #PARMS
 
-: BEGIN..WHILE..REPEAT  (( codeitem -- codeitem' ))
+: BEGIN..WHILE..REPEAT  ( codeitem -- codeitem' )
         Set.BEGIN  ['] .REPEAT OVER SetAuxDecompiler
         ['] .WHILE AnaStack::Top DROP NextWord SetAuxDecompiler ; 1 1 #PARMS
 
 // <6>
-: FOR..NEXT     (( codeitem -- codeitem' ))
+: FOR..NEXT     ( codeitem -- codeitem' )
         DUP ScanBackwardL PrevWord // this word should be ">R", if it is not,
 				   // this word is written in such kind :
 				   // ... >R ... [ HERE ] ... NEXT ...
@@ -717,12 +775,12 @@ VARIABLE StopAtLast  // local flag for (ScanBackward) and ScanBackwardX
         ['] .NEXT OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <7>
-: FOR..AFT..THEN..NEXT  (( codeitem -- codeitem' ))
+: FOR..AFT..THEN..NEXT  ( codeitem -- codeitem' )
      // AFT..THEN has already been settle down
         DUP 'sGotoAddress OVER ScanBackwardL
         0 >R  // 0 is used for ">R ... R>" pair count
         BEGIN // find the first ">R" before AFT
-             2DUP |Address @  >      (( AFT'sNextWord > Codeitem'sAddress ))
+             2DUP |Address @  >      ( AFT'sNextWord > Codeitem'sAddress )
            ANDTHEN
              // there might be ">R ... R>" pair between FOR .. AFT
              DUP |AssocHead @
@@ -739,38 +797,38 @@ VARIABLE StopAtLast  // local flag for (ScanBackward) and ScanBackwardX
 // <8>
 // In state <8>,<9> and <10>, the correct "BEGIN" address cannot be 
 // determined, so use "AFT" 's previous word as the position .
-: Set.BEGIN..AFT        (( codeitem -- codeitem' ))
+: Set.BEGIN..AFT        ( codeitem -- codeitem' )
         DUP ScanBackwardL PrevWord
         ['] .BEGIN' SWAP InsertDecompiler       // indefinite BEGIN
         NextWord  ; 1 1 #PARMS
 
-: BEGIN..AFT..THEN..UNTIL       (( codeitem -- codeitem' ))
+: BEGIN..AFT..THEN..UNTIL       ( codeitem -- codeitem' )
         Set.BEGIN..AFT  ['] .UNTIL OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <9>
-: BEGIN..AFT..THEN..AGAIN       (( codeitem -- codeitem' ))
+: BEGIN..AFT..THEN..AGAIN       ( codeitem -- codeitem' )
         Set.BEGIN..AFT  ['] .AGAIN OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <10>
-: BEGIN..AFT..THEN..WHILE..REPEAT (( codeitem -- codeitem' ))
+: BEGIN..AFT..THEN..WHILE..REPEAT ( codeitem -- codeitem' )
         Set.BEGIN..AFT  ['] .REPEAT OVER SetAuxDecompiler
         AnaStack::TopCodeItem++
         ['] .WHILE AnaStack::Pop DROP SetAuxDecompiler  ; 1 1 #PARMS
 
 // Currently only single exit is implemented. Multiple exits remain unsolved.
 // <11>
-: WithinCurrentLoop?    (( chk_codeitem curr_codeitem -- T/F ))
+: WithinCurrentLoop?    ( chk_codeitem curr_codeitem -- T/F )
         SWAP |Address @ SWAP
         DUP 'sGotoAddress  SWAP |Address @  BETWEEN ; 2 1 #PARMS
 
 DEFER NextWord/NOOP
 
-: Set.WHILE'    (( #i -- ))
+: Set.WHILE'    ( #i -- )
         DUP AnaStack::Pick DROP NextWord/NOOP
         ['] .WHILE' OVER SetAuxDecompiler
         %while-else-then ROT AnaStack::Put ; 1 0 #PARMS
 
-: ..WHILEs..    (( codeitem -- count )) // return number of WHILEs
+: ..WHILEs..    ( codeitem -- count ) // return number of WHILEs
         0       // count
         AnaStack::Depth 0 DO
            OVER  #I AnaStack::Pick DROP   SWAP WithinCurrentLoop? 
@@ -780,15 +838,15 @@ DEFER NextWord/NOOP
 	      %while-else-then' ROT AnaStack::Put  LEAVE
            ENDIF
            #I Set.WHILE'
-           1+   (( codeitem count++ ))
+           1+   ( codeitem count++ )
         LOOP NIP ; 1 1 #PARMS
 
-: Set_TAB_count  (( count codeitem -- ))
+: Set_TAB_count  ( count codeitem -- )
         |CodeType DUP 
         C@   ROT 2* 2* 2* 2*   OR
         SWAP C! ; 2 0 #PARMS
 
-: FOR..WHILEs..NEXT(..[ELSE]s..THENs)   (( codeitem -- codeitem' ))
+: FOR..WHILEs..NEXT(..[ELSE]s..THENs)   ( codeitem -- codeitem' )
       // Depth couldn't possible be 0 now since there must be at least
       // one item on AnaStack meet the constrains to enter this routine.
         FOR..NEXT  ['] NOOP IS NextWord/NOOP
@@ -796,19 +854,19 @@ DEFER NextWord/NOOP
         ['] .NEXT' OVER SetAuxDecompiler  ; 1 1 #PARMS
         
 // <12>
-: BEGIN..WHILEs..UNTIL(..[ELSE]s..THENs)  (( codeitem -- codeitem' ))
+: BEGIN..WHILEs..UNTIL(..[ELSE]s..THENs)  ( codeitem -- codeitem' )
         BEGIN..UNTIL  ['] NextWord IS NextWord/NOOP
         DUP ..WHILEs.. OVER Set_TAB_count
         ['] .UNTIL' OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <13>
-: BEGIN..WHILEs..AGAIN(..[ELSE]s..THENs)   (( codeitem -- codeitem' ))
+: BEGIN..WHILEs..AGAIN(..[ELSE]s..THENs)   ( codeitem -- codeitem' )
         BEGIN..AGAIN  ['] NextWord IS NextWord/NOOP
         DUP ..WHILEs.. OVER Set_TAB_count
         ['] .AGAIN' OVER SetAuxDecompiler  ; 1 1 #PARMS
 
 // <14>
-: BEGIN..WHILEs..REPEAT(..[ELSE]s..THENs)  (( codeitem -- codeitem' ))
+: BEGIN..WHILEs..REPEAT(..[ELSE]s..THENs)  ( codeitem -- codeitem' )
         BEGIN..WHILE..REPEAT ['] NextWord IS NextWord/NOOP
         DUP ..WHILEs.. 2DUP SWAP Set_TAB_count // Set .REPEAT' 's TAB count
         OVER ['] .REPEAT' SWAP SetAuxDecompiler
@@ -816,15 +874,20 @@ DEFER NextWord/NOOP
         Set_TAB_count ; 1 1 #PARMS
 
 // <15>
-: ANDTHEN(..THEN-AND)   (( codeitem ca -- codeitem' ca' ))      // (13)
-        SWAP AnaStack::Top NIP  %andthen  <>  IF
+: ANDTHEN(..THEN-AND)   ( codeitem ca -- codeitem' ca' )      // (13)
+        SWAP AnaStack::Top NIP %andthen <>
+        ORELSE
+          AnaStack::Top NIP %andthen = ANDTHEN
+          DUP 'sGotoAddress AnaStack::Top DROP 'sGotoAddress <> THEN-AND
+        ELSE-OR
+        IF
            DUP  %andthen  AnaStack::Push
-        ENDIF 
+        ENDIF
         SWAP SIZEOF DROP LITERAL 1- + 
         OVER ['] .ANDTHEN SWAP SetAuxDecompiler  ; 2 2 #PARMS
 
 // <16>
-: ORELSE(..ELSE-OR)     (( codeitem ca -- codeitem' ca' ))      // (14)
+: ORELSE(..ELSE-OR)     ( codeitem ca -- codeitem' ca' )      // (14)
         SWAP AnaStack::Top NIP  %orelse  <>  IF
            DUP %orelse AnaStack::Push
            ['] .ORELSE OVER SetAuxDecompiler
@@ -834,61 +897,65 @@ DEFER NextWord/NOOP
 
 // Resolve the words in parenthesis :
 
-: AddTrailingCodeItem   (( ca -- ))
+: AddTrailingCodeItem   ( ca -- )
         AnaStack::Pop DROP
         0 DUP DUP AddCodeItem
         SWAP 'sGotoAddress OVER |Address !
         SetAuxDecompiler  ; 1 0 #PARMS
 
-: ..THEN        (( -- )) // Set .THEN of AFT..THEN
+: ..THEN        ( -- ) // Set .THEN of AFT..THEN
         ['] .THEN  AddTrailingCodeItem  ; 0 0 #PARMS
 
-: ..ENDIF       (( -- ))
+: ..ENDIF       ( -- )
         ['] .ENDIF  AddTrailingCodeItem  ; 0 0 #PARMS
 
-: ..[ELSE]..THEN'       (( -- ))
+: ..[ELSE]..THEN'       ( -- )
     // Note that the ".ELSE" is settled by (2).
         ['] .THEN'  AddTrailingCodeItem  ; 0 0 #PARMS
 
-: ..[ELSE]..THEN        (( -- ))
+: ..[ELSE]..THEN        ( -- )
         ..THEN ; 0 0 #PARMS
 
-: ..THEN-AND    (( -- ))
+: ..THEN-AND    ( -- )
         ['] .THEN-AND  AddTrailingCodeItem ; 0 0 #PARMS
 
-: ..ELSE-OR     (( -- ))
+: ..ELSE-OR     ( -- )
         ['] .ELSE-OR   AddTrailingCodeItem ; 0 0 #PARMS
 
 // ------------------------------------------------------------------------ //
 
-: is:?BRAN  (( codeitem -- T/F ))   |AssocHead @ [`] ?BRANCH  =  ; 1 1 #PARMS
-: is:BRAN   (( codeitem -- T/F ))   |AssocHead @ [`] BRANCH   =  ; 1 1 #PARMS
-: is:next   (( codeitem -- T/F ))   |AssocHead @ [`] next     =  ; 1 1 #PARMS
+: is:?BRAN  ( codeitem -- T/F )   |AssocHead @ [`] ?BRANCH  =  ; 1 1 #PARMS
+: is:BRAN   ( codeitem -- T/F )   |AssocHead @ [`] BRANCH   =  ; 1 1 #PARMS
+: is:next   ( codeitem -- T/F )   |AssocHead @ [`] next     =  ; 1 1 #PARMS
 
-: backward?     (( codeitem -- T/F ))
+: backward?     ( codeitem -- T/F )
         DUP |Address @ SWAP 'sGotoAddress  >=   ; 1 1 #PARMS
-: forward?      (( codeitem -- T/F ))
+: forward?      ( codeitem -- T/F )
         backward? NOT ; 1 1 #PARMS
 
-: forward-?BRANCH-on-stack?     (( -- T/F ))
+: forward-?BRANCH-on-stack?     ( -- T/F )
       // This condition tests the possibility of WHILE .. [ELSE] .. THEN 
         AnaStack::TopCodeItem
         DUP 0<>  ANDTHEN  DUP is:?BRAN  ANDTHEN  DUP forward?
         THEN-AND NIP ; 0 1 #PARMS
 
-: WHILEs..ELSEs..THENs? (( codeitem -- T/F ))
+: WHILEs..ELSEs..THENs? ( codeitem -- T/F )
         forward-?BRANCH-on-stack?  ANDTHEN
         AnaStack::TopCodeItem OVER WithinCurrentLoop?
         THEN-AND NIP ; 1 1 #PARMS
 
-: AFT..THEN?    (( codeitem -- T/F ))
+: AFT..THEN?    ( codeitem -- T/F )
       // This condition tests the possibility of AFT .. THEN    
         DUP ScanBackwardL        // ci cib
-        DUP PrevWord is:BRAN  ANDTHEN
-        2DUP 'sGotoAddress SWAP |Address @ <=  THEN-AND
+        DUP PrevWord is:BRAN  
+      ANDTHEN
+        2DUP 'sGotoAddress SWAP |Address @ <=
+      ANDTHEN  // 01/24/'97
+        ['] .AFT OVER PrevWord SetAuxDecompiler TRUE
+      THEN-AND
         -ROT 2DROP ; 1 1 #PARMS
 
-: Analyze:UNTIL (( codeitem -- codeitem' ))
+: Analyze:UNTIL ( codeitem -- codeitem' )
         DUP WHILEs..ELSEs..THENs?
         IF
             BEGIN..WHILEs..UNTIL(..[ELSE]s..THENs)      // (12)
@@ -900,7 +967,7 @@ DEFER NextWord/NOOP
             BEGIN..UNTIL                                // (3)
         ENDIF ENDIF  ; 1 1 #PARMS
 
-: Analyze:REPEAT  (( codeitem -- codeitem' ))
+: Analyze:REPEAT  ( codeitem -- codeitem' )
         DUP AnaStack::Pop ROT WHILEs..ELSEs..THENs? -ROT AnaStack::Push
         IF
             BEGIN..WHILEs..REPEAT(..[ELSE]s..THENs)
@@ -911,7 +978,7 @@ DEFER NextWord/NOOP
             BEGIN..WHILE..REPEAT AnaStack::Pop 2DROP    // (5)
         ENDIF ENDIF ; 1 1 #PARMS
 
-: Analyze:AGAIN (( codeitem ca -- codeitem' ))
+: Analyze:AGAIN ( codeitem ca -- codeitem' )
      // ca = next word address of BRANCH<--     
         OVER WHILEs..ELSEs..THENs?
         IF 
@@ -930,7 +997,7 @@ DEFER NextWord/NOOP
 // "?BRANCH", "BRANCH" and "next" are 1-address instructions, so there is 
 // no need to advance the discompiler pointer from ca to ca' .
 
-: Analyze:?BRAN  (( codeitem ca -- codeitem' ca' ))
+: Analyze:?BRAN  ( codeitem ca -- codeitem' ca' )
      // ca = address of "?BRANCH" 's next word 
         >R DUP backward? IF
            Analyze:UNTIL
@@ -941,7 +1008,7 @@ DEFER NextWord/NOOP
            DUP %if-then AnaStack::Push // either IF or WHILE
         ENDIF R> ; 2 2 #PARMS
 
-: OuterBranch?   (( codeitem -- T/F ))
+: OuterBranch?   ( codeitem -- T/F )
     // Check whether it branch out of current word, if it is, then it is an 
     // optimized word :  CALL XXXX RET ==>  JMP XXXX
         DUP 'sGotoAddress  CurrWordStart 1-  CurrWordEnd  BETWEEN  NOT
@@ -949,7 +1016,7 @@ DEFER NextWord/NOOP
            OVER ['] .WordBranched SWAP SetAuxDecompiler
         ENDIF NIP  ; 1 1 #PARMS
 
-: Analyze:BRAN  (( codeitem ca -- codeitem' ca ))
+: Analyze:BRAN  ( codeitem ca -- codeitem' ca )
      // ca = address of "BRANCH" 's next word .
         OVER OuterBranch? NOT IF
            >R DUP backward? IF
@@ -959,12 +1026,12 @@ DEFER NextWord/NOOP
               R@   AnaStack::TopCodeItem 'sGotoAddress   =  THEN-AND  IF
                  IF/WHILE..ELSE(..ENDIF/THEN)           // (2)
               ELSE
-                 AFT(..THEN)                            // (0)
+                 AHEAD/AFT(..THEN)                      // (0)
               ENDIF
            ENDIF R>
         ENDIF ; 2 2 #PARMS
 
-: Analyze:next  (( codeitem ca -- codeitem' ca' ))
+: Analyze:next  ( codeitem ca -- codeitem' ca' )
      // ca = address of "next" 's next word
         >R 
         DUP WHILEs..ELSEs..THENs?
@@ -979,26 +1046,42 @@ DEFER NextWord/NOOP
         ENDIF ENDIF
         R> ; 2 2 #PARMS
 
-: +++   (( -- )TIB: <name> <name> <name> ) 
-        ` ,     (( 1 head ))
-        ' , ' , (( 2 vectors )) ; 0 0 #PARMS
+// ///////////////////////////////////////////////////////////////////////////
+//          Analyst Table Building                                          //
+// ///////////////////////////////////////////////////////////////////////////
+// There are two kinds of Analyst table, one is for control structures and
+// the other is normal.
+//   CtrlStructAnalysts analyze the code flow of the discompiled codes.
+//         It can be turned off by setting [ Analysis ] flag OFF.
+//   Analysts analyze other compiling words such as strings, literals ...
 
-: (End-Analysts) ;      // build a dummy header
+: +++   ( -- ) // TIB: <name> <name> <name>
+        ` ,     ( 1 head )
+        ' , ' , ( 2 vectors ) ; 0 0 #PARMS
 
-CREATE  CtrlStructAnalysts
+: (End-Analysts) ;      // build a dummy header for marking table-end
+: (AnyWord) ;           // build a dummy header for any word.
+: LinkAnalysts    ( -- )  ( TIB: <table_name> -- ) RECURSIVE
+        [`] LinkAnalysts ,  ' EXECUTE , -1 ,
+        ; 0 0 #PARMS    // Link table to a new place.
+
+CREATE  DefaultCtrlStructAnalysts      // Control structure analysts
       // ------------------------------------------------------
-      //        head         addr-adjustor      dis-compiler
+      //        head         addr-adjustor      sourcer
       // ------------------------------------------------------
         +++     ?BRANCH      Analyze:?BRAN      NOOP
         +++     BRANCH       Analyze:BRAN       NOOP
         +++     next         Analyze:next       NOOP
 
         +++  (End-Analysts)     NOOP            NOOP
+
+    //  +++   (AnyWord)      Analyze:AnyWord    NOOP
+    //  LinkAnalysts  AnalystsTableName    // Sample use for LinkAnalysts
       // ------------------------------------------------------
 
-CREATE  Analysts
+CREATE  DefaultAnalysts                // other compiling word analysts
       // ------------------------------------------------------
-      //        head         addr-adjustor      dis-compiler
+      //        head         addr-adjustor      sourcer
       // ------------------------------------------------------
         +++     JT=0      ANDTHEN(..THEN-AND)   NOOP
         +++     JT<>0     ORELSE(..ELSE-OR)     NOOP
@@ -1016,6 +1099,8 @@ CREATE  Analysts
         +++     (?DO)           CELL+           .?DO
         +++     (LOOP)          CELL+           .LOOP
         +++     (+LOOP)         CELL+           .+LOOP
+        +++     (LEAVE)         NOOP            .LEAVE
+        +++     (?LEAVE)        NOOP            .?LEAVE
 
         +++     CREATE          NOOP            .CREATE
         +++     ;DOES           +DOES>          .DOES>
@@ -1029,29 +1114,47 @@ CREATE  Analysts
         +++  (End-Analysts)     NOOP            NOOP
       // ------------------------------------------------------
 
+DefaultCtrlStructAnalysts  VALUE  CtrlStructAnalysts
+DefaultAnalysts            VALUE  Analysts
+
 VARIABLE Analysis 
 Analysis ON
 
-: (Analyze)       (( ca codeitem analysts_table -- ca' T/F ))
+: AnyWordWillDo   ( ca ci ha ana -- ca' ci' ha ana )
+     // This could be used to check every word, ex. check its CREATOR ...
+        >R R@ CELL+ @ SWAP >R             // ca ci ana^    ana ha
+        -ROT SWAP ROT EXECUTE SWAP        // ca ci -- ca' ci'
+        R> R> ; 4 4 #PARMS                // ca' ci' ha ana
+
+: (Analyze)       ( ca codeitem analysts_table -- ca' T/F )
         >R DUP |AssocHead @ R>
         BEGIN           // ca ci ha ana
-           2DUP @  <>
+           DUP @ [`] (AnyWord) = IF             // ca ci ha ana
+              AnyWordWillDo TRUE
+           ELSE
+              2DUP @  <>
+           ENDIF
            WHILE
-              [ CELL 3 * ] LITERAL +    // advance to next analyst
+              DUP @ [`] LinkAnalysts = IF       // ca' ci' ha ana
+                  DUP 2 CELLS + @ -1 <> ABORT" * SEE : Invalid analysts table."
+                  CELL+ @
+              ELSE
+                  [ 3 CELLS ] LITERAL +  // ca ci ha ana' // next analyst
+              ENDIF
               DUP @ [`] (End-Analysts) =
         UNTIL
               3DROP FALSE
            ELSE // found   ca ci ha ana
-              -ROT HEAD>  OVER |Address @   <>  IF 
+              -ROT HEAD>  OVER |Address @   <>  IF
                  SWAP CELL+ >R SWAP R@ @EXECUTE // ci ca -- ci ca'
                  R> CELL+ @ ROT SetAuxDecompiler
               ELSE
                  2DROP
-              ENDIF  
-	      TRUE
+              ENDIF
+	      TRUE      // Analyst worked
            THEN  ; 3 2 #PARMS
 
-: Analyze	(( ca codeitem -- ca' ))
+: Analyze	( ca codeitem -- ca' )
 	2DUP Analysts  (Analyze) NOT  Analysis @ AND
 	IF
 	   DROP CtrlStructAnalysts (Analyze) DROP
@@ -1059,7 +1162,7 @@ Analysis ON
 	   -ROT 2DROP
 	ENDIF ; 2 1 #PARMS
 
-: LowLevelSolve	 (( goto codeitem -- goto_next T/F ))
+: LowLevelSolve	 ( goto codeitem -- goto_next T/F )
 	DUP -ROT |Address @ 
 	DUP  CurrWordEnd OVER -  SearchMacro NIP // ci gt ca node/0
       	DUP IF
@@ -1081,13 +1184,13 @@ Analysis ON
 	   NIP ROT DROP
 	ENDIF ; 2 2 #PARMS
 
-: Disassemble   (( ca -- ca' ))
-        (( CPU80486::)) DISASSEMBLE
+: Disassemble   ( ca -- ca' )
+        ( CPU80486::) DISASSEMBLE
         0 0 DASM  AddCodeItem DROP ; 1 1 #PARMS
 
-: DisassembleSolve  (( goto codeitem -- goto_next T / F F ))
+: DisassembleSolve  ( goto codeitem -- goto_next T / F F )
         SWAP >R DUP |Address @ 
-        (( CPU80486:: )) DISASSEMBLE SWAP >R  0 0 DASM R>  SetCodeItem 
+        ( CPU80486:: ) DISASSEMBLE SWAP >R  0 0 DASM R>  SetCodeItem 
         BEGIN 
            DUP R@ <
         WHILE
@@ -1097,7 +1200,7 @@ Analysis ON
            NIP DUP
         ENDIF ; 2 2 #PARMS
 
-: SolveAmbiguity	(( goto codeitem  -- goto_next T / F F ))
+: SolveAmbiguity	( goto codeitem  -- goto_next T / F F )
       // codeitem's address is prior to goto address
         2DUP LowLevelSolve  // goto ci goto' T/F 
       ORELSE
@@ -1105,20 +1208,28 @@ Analysis ON
       ELSE-OR 
         2SWAP 2DROP ; 2 2 #PARMS
 
-: TryResolveForward     (( ca -- ca ))  RECURSIVE
+DEFER ForwardResolver   ( ctrl_type -- continue? )
+: DefaultForwardResolver        ( ctrl_type -- continue? )
+        TRUE SWAP
+        CASE
+           %ahead/aft-then   OF  ..THEN           ENDOF
+           %if-then   	     OF  ..ENDIF          ENDOF
+           %while-else-then  OF  ..[ELSE]..THEN   ENDOF
+           %while-else-then' OF  ..[ELSE]..THEN'  ENDOF
+           %andthen  	     OF  ..THEN-AND       ENDOF
+           %orelse   	     OF  ..ELSE-OR        ENDOF
+           SWAP FALSE SWAP
+        ENDCASE ; 1 1 #PARMS
+' DefaultForwardResolver IS ForwardResolver
+
+: TryResolveForward     ( ca -- ca )  RECURSIVE
         AnaStack::Top 0<> IF
            'sGotoAddress 2DUP = IF      // resolve it
                DROP AnaStack::Top NIP
-               CASE
-                  %aft-then  	     OF  ..THEN           ENDOF
-                  %if-then   	     OF  ..ENDIF          ENDOF
-                  %while-else-then   OF  ..[ELSE]..THEN   ENDOF
-                  %while-else-then'  OF  ..[ELSE]..THEN'  ENDOF
-                  %andthen  	     OF  ..THEN-AND       ENDOF
-                  %orelse   	     OF  ..ELSE-OR        ENDOF
-               ENDCASE
-               TryResolveForward
-           ELSE 2DUP > IF  // re-discompile the lattest word  (( ca goto ))
+               ForwardResolver ASSERT{ DUP }?ASSERT" * Foward not resolved."
+               DROP
+               TryResolveForward   // forwards might reference to same address
+           ELSE 2DUP > IF  // re-discompile the lattest word  ( ca goto )
 	      // should re-discompile it, (ca > branch to address)	
 	       NIP  LastCodeItem  SolveAmbiguity
 	       IF  TryResolveForward  ELSE  Ambigious  ENDIF
@@ -1129,17 +1240,17 @@ Analysis ON
            DROP 
         ENDIF  ; 1 1 #PARMS
 
-: HighLevel?   (( ca -- ca' T/F ))
+: HighLevel?   ( ca -- ca' T/F )        // HighLevel : i.e. Non Macros
         DUP C@ %CALL% = 
       ANDTHEN
         1+ @Rel>Abs 
         DUP CurrWordStart = IF
            ['] .RecurseDef CodeItemHeader SetAuxDecompiler
         ENDIF
-        >HEAD 0 NM AddCodeItem Analyze TRUE   (( ca+5+? T ))
+        >HEAD 0 NM AddCodeItem Analyze TRUE   ( ca+5+? T )
       THEN-AND ; 1 2 #PARMS
 
-: ReDiscompile  (( ca -- ca' T / F F ))
+: ReDiscompile  ( ca -- ca' T / F F )
         BEGIN // pop off AnaStack which comes after ca
            AnaStack::Top DROP   DUP 0<>  ANDTHEN 
            2DUP |Address @      <        THEN-AND NIP
@@ -1153,45 +1264,54 @@ Analysis ON
         REPEAT
         LastCodeItem SolveAmbiguity  ; 1 2 #PARMS
 
-: LowLevel?    (( ca -- ca' T/F ))
-        DUP  CurrWordEnd OVER -  SearchMacro DUP (( ca ca' nd nd ): ca ca F F )
+: LowLevel?    ( ca -- ca' T/F )        // LowLevel : i.e. MACROs
+        DUP  CurrWordEnd OVER -  SearchMacro DUP ( ca ca' nd nd ) // ca ca F F
       ANDTHEN
         DUP |ASSOC-MACRO-HEAD @
         SWAP |ADDRESSING C@
-        CASE    (( ca ca' ha ))
+        CASE    ( ca ca' ha )
             ZA  OF   0 ZA                         ENDOF
            1AI  OF   SWAP DUP CELL+ -ROT @  1AI   ENDOF
            1AR  OF   SWAP @Rel>Abs ROT SWAP 1AR   ENDOF
-        ENDCASE (( ca ca' ha val type ))
+        ENDCASE ( ca ca' ha val type )
         AddCodeItem 
         ['] Analyze CATCH ?DUP IF // ca ca' ci goto
             // re-discompile this address since Analyze failed.
             >R 3DROP R> ReDiscompile DUP NOT IF  Ambigious  ENDIF 
             EXIT
         ENDIF
-        TRUE DUP (( ca ca' T T ))
+        TRUE DUP ( ca ca' T T )
       THEN-AND NIP ROT DROP ; 1 2 #PARMS
 
-: Discompile    (( ca-start ca-end -- ca' ))
+DEFER PreDiscompile     ( ca-start ca-end -- ca-start' ca-end' ) 2 2 #PARMS
+DEFER PostDiscompile    ( ca' -- ca'' ) 1 1 #PARMS
+' NOOP IS PreDiscompile
+' NOOP IS PostDiscompile
+
+: Discompile    ( ca-start ca-end -- ca' )
      // ca' : next word address after ca-end.
         2DUP => CurrWordEnd => CurrWordStart
-        SWAP (( ca-end ca-start ))
+        PreDiscompile
+        SWAP ( ca-end ca-start )
         BEGIN
             DUP  CurrCodeItemIdx ()Codes |Address  !
             HighLevel?  ORELSE
             LowLevel?   ELSE-OR
             NOT IF  Disassemble  ENDIF
             TryResolveForward
-        2DUP <= UNTIL DROP  ; 2 1 #PARMS
+        2DUP <= UNTIL DROP
+        PostDiscompile
+        ; 2 1 #PARMS
 
 // ///////////////////////////////////////////////////////////////////////////
 //                      Output functions :
 // ///////////////////////////////////////////////////////////////////////////
 
-: ?EXECUTE      (( ca/0 -- ))
+: ?EXECUTE      ( ca/0 -- )
         ?DUP IF EXECUTE ENDIF   ; 1 0 #PARMS
 
-: .Source       (( -- ))
+DEFER .Source
+: <.Source>     ( -- )
         CodeItemHeader |AuxDecom @ ?EXECUTE // header
 	SHOW-CODES @ SHOW-CODES OFF
         CurrCodeItemIdx  0 DO
@@ -1213,19 +1333,20 @@ Analysis ON
 	SHOW-CODES !
         CodeItemTrailer |AuxDecom @ ?EXECUTE // trailer
         ; 0 0 #PARMS
+' <.Source> IS .Source
 
-: Set.Colon     (( ha -- ))
+: Set.Colon     ( ha -- )
         0 0 CodeItemHeader SetCodeItem
         ['] .Colon  CodeItemHeader   SetAuxDecompiler ; 1 0 #PARMS
 
-: Set.Semicolon  (( ha -- ))
+: Set.Semicolon  ( ha -- )
         0 0 CodeItemTrailer SetCodeItem
         ['] .Semicolon  CodeItemTrailer  SetAuxDecompiler ; 1 0 #PARMS
 
-: SeeInto  (( code-start code-end -- ca' ))
+: SeeInto  ( code-start code-end -- ca' )
 	Analysis ON
 	2DUP ['] Discompile CATCH 
-	IF
+	0<> IF
 	   Analysis OFF  0 => CurrCodeItemIdx
 	   2DROP Discompile  // Why should I use 2DROP but not DROP ?
 	ELSE
@@ -1233,38 +1354,46 @@ Analysis ON
 	ENDIF
 	.Source ; 2 1 #PARMS
 
-: SeeColonWord  (( ca -- ca' ))
+: SeeColonWord  ( ca -- ca' )
         DUP >HEAD       // ca ha
         DUP Set.Colon  DUP Set.Semicolon
         |SIZE @ OVER + 1-       // startca endca
         SeeInto ; 1 1 #PARMS
 
-: SeeDefinedWord        (( ca -- ca' T )OR: ca -- ca F )
+: SeeDefinedWord        ( ca -- ca' T ) // OR: ca -- ca F
         >R R@ DefinedWord?
       ANDTHEN
-        R@ >HEAD Set.Semicolon
-        DUP CELL- @ DUP >HEAD DUP .ID SPACE R@ >HEAD .ID CR
-        ."   DOES> " R@ >HEAD .StackMap NEXTROW
-        |SIZE @ + 1- SWAP [ SIZEOF R> 1- ] LITERAL + (( skip R> ))
-        SWAP SeeInto TRUE
+        ['] DEFER R@ CREATOR? IF        // See deferred word  01/24/'97
+           ." DEFER " R@ >HEAD .ID TAB
+           ." ' " R@ >DEFERRED DUP CODE>HEAD .ID ."  IS " R@ >HEAD .ID CR
+           SeeColonWord DROP
+        ELSE
+           R@ >HEAD Set.Semicolon
+           DUP CELL- @ DUP >HEAD DUP .ID SPACE R@ >HEAD .ID CR
+           ."   DOES> " R@ >HEAD .StackMap NEXTROW
+           |SIZE @ + 1- SWAP [ SIZEOF R> 1- ] LITERAL + ( skip R> )
+           SWAP SeeInto
+        ENDIF
+        TRUE
       THEN-AND RDROP ; 1 2 #PARMS
 
 : ResetSEE	// 09/26/'95
-      0 => CurrCodeItemIdx   1 => #TABS   CleanDiscompBuffer  ;
+      0 => CurrCodeItemIdx   1 => #TABS   CleanDiscompBuffer  
+      AnaStack::Reset ;
 
 FORTH DEFINITIONS
 
-: |SEE|	  (( ca size -- ))		// 09/26/'95
+: |SEE|	  ( ca size -- )		// 09/26/'95
 	ResetSEE
 	CR OVER + SeeInto DROP ; 2 0 #PARMS
 
-: <SEE>   (( ca -- ))
+: <SEE>   ( ca -- )
         ResetSEE
         CR SeeDefinedWord NOT IF  SeeColonWord   ENDIF DROP ; 1 0 #PARMS
 
 HIDDEN DEFINITIONS
 
-: (SEE) (( <name> -- ))
+: (SEE)   ( <name> -- )
         ' <SEE> ; 0 0 #PARMS
 
 FORTH DEFINITIONS
@@ -1273,5 +1402,6 @@ FORTH DEFINITIONS
 
 BUG-WARNING ON
 ONLY FORTH ALSO DEFINITIONS
+
 
 

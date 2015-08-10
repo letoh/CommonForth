@@ -10,6 +10,8 @@ CR
 NEEDS FLOAT.4TH 
 NEEDS DOSCMD.4TH
 
+gppconio_init   // initialization
+
 CR wait
 CR
 .( * Now do some testing ...) CR

@@ -1,10 +1,11 @@
 // Command input history recording, with a simple line editor
 
 				      // Written by : Luke Lee
-				      // Version 1.3
-				      //      V1.1    [ 04/23/'94 ]
+				      // Version 1.31
+				      //              [ 04/23/'94 ] V1.1
 				      //              [ 05/15/'94 ]
-				      // Last update  [ 10/18/'95 ]
+				      //              [ 10/18/'95 ] V1.3
+				      // Last update  [ 01/23/'97 ] V1.31
 
 HIDDEN ALSO DEFINITIONS
 
@@ -234,6 +235,7 @@ CTRL [  CONSTANT  ESC
 	#chars_got ?{   // non-zero input
 	   #chars_got ^history C!    buf ^history 1+ #chars_got MOVE
 	   #history 1+ => #history  ^history++
+           0  buf #chars_got +  C!      // trailing zero  01/23/'97
 	}? ;
 
 : keybufCONSOLE (| -- |)
@@ -248,3 +250,4 @@ CTRL [  CONSTANT  ESC
 
 ONLY FORTH ALSO DEFINITIONS
 
+

@@ -1,4 +1,4 @@
-// TURNKEY system saving : GO32 version
+// TURNKEY system saving
 			// Written by : Luke Lee  01/25/'96 .. 01/28/'96
 			// Version : 1.1
 //      update : 01/30/'96
@@ -15,9 +15,9 @@ FORTH DEFINITIONS
 HIDDEN ALSO DEFINITIONS
 
 : TurnkeySystemFiles	(( -- $name1 $name2 ))
-	$" GO32.EXE" 	 $" TURNKEY."	// GO32 version.
-//	$" STUB386.EXE"  $" TURNKEY."	// Phar Lap RUN386 version
-//	$" NUL"          $" CF.EXE"	// PMode version
+//	$" GO32.EXE" 	 $" TURNKEY."	        // GO32 version.
+//	$" STUB386.EXE"  $" TURNKEY."	        // Phar Lap RUN386 version
+	$" NUL"          $" TURNKEY.EXE"	// PMode and CWSDPMI version
 	; 0 2 #PARMS
 
 CREATE TKEY_BUF1 40 ALLOT

@@ -21,16 +21,16 @@ STRUCT: HEAD:
      |HEAD| OFFSET |NAME-LENGTH 1+ - FIELD:   |NAME-STRING
 ;STRUCT
 
-: >LINK         (( cfa -- lfa ))
+: >LINK         ( cfa -- lfa )
         >HEAD |LINK ; 1 1 #PARMS
 
-: LINK>         (( lfa -- cfa ))
+: LINK>         ( lfa -- cfa )
         OFFSET |LINK LITERAL - @ ; 1 1 #PARMS
 
-: N>LINK        (( nfa -- lfa ))
+: N>LINK        ( nfa -- lfa )
         NAME> >LINK ; 1 1 #PARMS
 
-: L>NAME        (( lfa -- nfa ))
+: L>NAME        ( lfa -- nfa )
         LINK> >NAME ; 1 1 #PARMS
 
 

@@ -1,11 +1,9 @@
 // Miscellaneous high level words for Common Forth
 
                                         // Written by : Luke Lee
-                                        // Last update : 03/19/'96
+                                        // Last update : 01/23/'97
 
 // ---------------------------------------------------------------------------
-// Stack parameter and Local variables           08/08/'92 successfully work
-// ( all in data stack, return stack not involved )
 
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 //                    I M P O R T A N T     N O T E S
@@ -17,47 +15,8 @@
 //  'FLOAD StkExpr.4TH' .
 // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-// Syntax :
-//
-// Example 1. Two input parameters, one output parameter
-//   : f (| in1 in2 -- out |) ... ;
-//
-// Example 2. Two input parameters, no outputs
-//   : f (| in1 in2 -- |) ... ;
-//
-// Example 3. No inputs, two output parameters
-//   : f (| -- out1 out2 |) ... ;
-//
-// Example 4. Three inputs, two locals and 2 outputs
-// : f (| in1 in2 in3 | local1 local2 -- out1 out2 |)
-//       in1 in2 + >> local1
-//       local1 in3 * >> out1
-//       ... ;
-//
-// Note:   With | present but no local variables defined, the syntax is still
-//         valid. Ex.   : f (| in1 in2 | -- out |) ... ;
-//
-// Example 5     CREATE .. DOES> ...
-//       Note : The parameters between ':' to 'DOES>' are unknown for
-//              codes between 'DOES>' to ';' .
-//  Ex 5.1
-// : f (| in1 -- |)
-//       CREATE
-//         in1 ,
-//       DOES> (| pfa -- |)  // There MUST have at least one parameter
-//         pfa @ . ;         // representing PFA
-//
-//  Ex 5.2
-// : TEST (| in1 -- |)
-//       CREATE
-//        in1 ,
-//       DOES> (| a b c pfa -- |)
-//        pfa @ . c . b . a . ;
-// 4 TEST newword ok
-// 1 2 3 newword 4 3 2 1 ok
-
 // --------------------------------------------------------------------------
-// Modification history I rememberred :
+// Modification history I rememberred (too many to record them all) :
 //   [8/20/'92] : Add DEFERS and modifies DEFER .
 //   [9/05/'92] : Add alias #I of R@, and modify the bug in ALIAS
 //                ( the I/O #PARMS must be the same too ) .
@@ -90,6 +49,16 @@
 //   ...
 //   [03/10/'96] : Optimize ARRAY: for different case DOES> .
 //   [03/19/'96] : Move 2SWAP into CF0.4TH .
+//   [07/14/'96] : Modify HERROR$ for DPMI error messages.
+//   [11/15/'96] : Move disassembler CODE>HEAD here.
+//   [01/04/'97] : Add COMMENT-PAIR: words set.
+//   [01/20/'97] : Modify [ COMPILE exit ] to [ exit, ]
+//   [01/21''97] : Add [ DEFERRED ], ex: 
+//                 DEFER DFR    ['] NOOP IS DFR
+//                 DEFERRED DFR     
+//                      ['] WORDS IS DFR   DFR
+//                 IS DFR
+//   [01/23/'97] : Modify [ CREATOR? ] for more robust checking.
 // --------------------------------------------------------------------------
 
 WARNING OFF
@@ -113,18 +82,20 @@ FLOAD MEMMAP.4TH        // system memory map
 
 // ***************         Some commonly used words        *****************
 
-// : valid-addr?   (( a -- T/F ))
-//        BASE-ADDRESS     BASE-ADDRESS |WORK-SPACE |FORTH-VOCTABLE
-//        WITHIN ; 1 1 #PARMS
+: valid-addr?   ( a -- T/F )
+        BASE-ADDRESS     BASE-ADDRESS |WORK-SPACE |FORTH-VOCTABLE
+        WITHIN ; 1 1 #PARMS
 
-// : >HEAD (( ca -- ha|0 )) // Convert code address into head address if success,
-//                        // otherwise return 0.
-//         DUP valid-addr? IF // ca valid ?
-//            >HEAD
-//            DUP valid-addr? NOT IF DROP 0 ENDIF
-//         ELSE
-//            DROP 0
-//         ENDIF ; 1 1 #PARMS
+: CODE>HEAD ( ca -- ha|0 ) // Convert code address into head address if success,
+                           // otherwise return 0.
+        DUP DUP valid-addr?
+        IF >HEAD DUP valid-addr?
+           IF 2DUP |REFERENCE @ =
+              IF
+                 NIP EXIT
+              ENDIF
+           ENDIF
+        ENDIF 2DROP FALSE ; 1 1 #PARMS
 
 0  CONSTANT NULL
 0  CONSTANT NIL
@@ -132,7 +103,7 @@ FLOAD MEMMAP.4TH        // system memory map
 : BINARY  2 BASE ! ; 0 0 #PARMS
 
 : EXIT  (( -- ))
-        STATE @ IF   COMPILE EXIT   ENDIF ; 0 0 #PARMS IMMEDIATE
+        STATE @ IF  exit,  ENDIF ; 0 0 #PARMS IMMEDIATE
 
 : TUCK  (( n1 n2 -- n2 n1 n2 ))
         SWAP OVER ; MACRO 2 3 #PARMS
@@ -163,19 +134,6 @@ FLOAD MEMMAP.4TH        // system memory map
            ROT CMOVE
         ENDIF ; 3 0 #PARMS
 
-: $+   (( target$ src len -- target$ ))
-      // target$ : counted string
-      // src : source string address ( not including the count byte )
-      // len : the length to concat
-      // concat source string into a counted-string
-      // note that target$ buffer must be large enough
-	ROT >R R@ C@ 2DUP + R@ C!
-	R@ + 1+ SWAP CMOVE R> ;	3 1 #PARMS
-
-: $=	(( A1 A2 -- T/F ))
-      // Compare two counted string
-	DUP C@ 1+ COMP 0=  ; 2 1 #PARMS
-
 : BEEP          (( -- ))	
 	7 BIOSEMIT ; 0 0 #PARMS
 
@@ -195,6 +153,54 @@ FLOAD VOCAB.4TH
 
 VOCABULARY HIDDEN
 HIDDEN ALSO DEFINITIONS
+
+// ***********************         Defer words          ********************
+
+: CRASH         (( -- ))
+        ."  Uninitialized vector !" CR ABORT ; 0 0 #PARMS
+
+FORTH DEFINITIONS
+
+: CREATOR?	( creator created -- T/F )      // 01/23/'97 modified
+        DUP ['] call [ ' call >HEAD |SIZE @ 1- ] LITERAL COMP 0= IF
+	   1+ DUP @ + (( CELL+  CELL- )) @  =
+        ELSE
+           2DROP FALSE
+        ENDIF ; 2 1 #PARMS
+
+: DEFER         ( -- )
+        CREATE
+	  $FF $FF #PARMS
+          ['] CRASH ,
+        DOES>
+           @EXECUTE  ; 0 0 #PARMS        
+
+: 'DEFER        ( -- ca ) 
+        // Tick for defer words, check whether it is defined by DEFER.
+        ' ['] DEFER OVER CREATOR? NOT IF
+           ."  Can't defers a non-deferred word " >HEAD .ID ."  ." CR ABORT
+        ENDIF ; 0 1 #PARMS INVISIBLE
+                              
+: DEFERS        ( -- ) ( TIB:  <NAME> -- )
+        'DEFER
+        >BODY @ compile,
+        ; 0 0 #PARMS IMMEDIATE COMPILEONLY
+
+: >DEFERRED     ( defer_ca -- deferred_ca )     >BODY @ ; 1 1 #PARMS
+
+: DEFERRED      ( -- ca )
+        STATE @ IF
+           'DEFER >BODY \ LITERAL  COMPILE @
+        ELSE
+           'DEFER >DEFERRED
+        ENDIF ; IMMEDIATE 0 1 #PARMS
+
+: IS            ( ca -- )
+        STATE @ IF
+          ' >BODY \ LITERAL COMPILE !
+        ELSE
+          ' >BODY !
+        ENDIF ; IMMEDIATE 1 0 #PARMS
 
 // *****************        COMMENT: and ;COMMENT         *******************
 // Note : 
@@ -225,14 +231,19 @@ FORTH DEFINITIONS
 
 HIDDEN DEFINITIONS
 
-: EndComments	(( -- ))
+DEFER CommentPairing?  ( a -- T/F )  1 1 #PARMS
+: FailCommentPairing   ( a -- T/F )  DROP FALSE ; 1 1 #PARMS
+' FailCommentPairing IS CommentPairing?
+
+: EndComments	( -- )
 	CommentSaved'EVAL @ 'EVAL !
 	ResetComments  ; 0 0 #PARMS
 
-: $SKIP-COMMENTS        (( A -- ))
-	DUP  ['] ;COMMENT >NAME  $=
-        SWAP ['] COMMENT; >NAME  $=
-        OR IF  
+: $SKIP-COMMENTS   ( A -- )
+	DUP  ['] ;COMMENT >NAME  $= 
+        OVER ['] COMMENT; >NAME  $= OR
+        OVER CommentPairing?        OR  NIP
+        IF
 	   EndComments
         ELSE
            \ //
@@ -253,37 +264,20 @@ FORTH DEFINITIONS
         ['] $SKIP-COMMENTS 'EVAL !
         \ //  		; IMMEDIATE 0 0 #PARMS
 
-// ***********************         Defer words          ********************
-
-HIDDEN ALSO DEFINITIONS
-
-: CRASH         (( -- ))
-        ."  Uninitialized vector !" CR ABORT ; 0 0 #PARMS
-
-FORTH DEFINITIONS
-
-: CREATOR?	(( creator created -- T/F ))
-	1+ DUP @ + (( CELL+  CELL- )) @  =  ; 2 1 #PARMS
-
-: DEFER         (( -- ))
+: COMMENTS-PAIR: ( -- ) 
+                     ( TIB: <comment-begin> <comment-end> -- ) // 01/04/'97
+        >IN @  TOKEN C@ 0<> TOKEN C@ 0<> AND SWAP  >IN !
+        NOT IF  CR ." * Error : Comments not paired." CR ABORT  ENDIF
+        ['] COMMENT: ALIAS
         CREATE
-	  $FF $FF #PARMS
-          ['] CRASH ,
+           HERE    //  DUP aaaa $=  SWAP DEFERS CommentPairing?   OR  EXIT
+           COMPILE DUP   LAST @ |NAME-LENGTH \ LITERAL   COMPILE $=
+           COMPILE SWAP  
+           ['] CommentPairing? >BODY @  call,  // DEFERS CommentPairing?
+           COMPILE OR   exit,
+           IS  CommentPairing?
         DOES>
-           @EXECUTE  ; 0 0 #PARMS        
-                                         
-: DEFERS        (( -- )TIB:  <NAME> -- )
-        ' ['] DEFER OVER CREATOR? NOT IF
-           ."  Can't defers a non-deferred word " >HEAD .ID ."  ." CR ABORT
-        ENDIF
-        >BODY @ compile, ; 0 0 #PARMS IMMEDIATE COMPILEONLY
-
-: IS            (( ca -- ))
-        STATE @ IF
-          ' >BODY \ LITERAL COMPILE !
-        ELSE
-          ' >BODY !
-        ENDIF ; IMMEDIATE 1 0 #PARMS
+           \ ;COMMENT ; 0 0 #PARMS
 
 // *********************       Floaded file names        *******************
 
@@ -376,6 +370,29 @@ FLOAD StkExpr.4TH
 
 // *********************      New compiling words      *********************
 
+: $"    ( -- ; <string> )       // 01/12/'97
+        STATE @ IF
+           \ $"
+        ELSE                    
+           HERE $,"
+        ENDIF   ; IMMEDIATE  // A state-smart word which stack effect are not 
+                             // the same in compiling time or in interpreting 
+                             // time . So no '#PARMS' could be defined.
+
+: Z$"   ( -- ; <string> )       // 01/12/'97
+        STATE @ IF
+           \ Z$"
+        ELSE
+	   HERE $," 0 C,
+        ENDIF   ; IMMEDIATE
+
+: "     ( -- ; <string> )       // 01/12/'97
+        STATE @ IF
+	   \ "  
+        ELSE
+           HERE $," COUNT
+        ENDIF   ; IMMEDIATE
+
 : ASCII         (( -- ))
         CHAR STATE @ IF \ LITERAL ENDIF ; IMMEDIATE 0 0 #PARMS
 
@@ -400,6 +417,28 @@ FORTH DEFINITIONS
            $05 OF " Access denied"           ENDOF
            $06 OF " Invalid handle"          ENDOF
            $0C OF " Invalid access code"     ENDOF
+           // DPMI error codes : 07/14/'96 added
+           $8001 OF " Unsupported function"        ENDOF
+           $8002 OF " Invalid state"               ENDOF
+           $8003 OF " System integrity"            ENDOF
+           $8004 OF " Dead lock"                   ENDOF
+           $8005 OF " Request cancelled"           ENDOF
+           $8010 OF " Resource Unavailable"        ENDOF
+           $8011 OF " Descriptor unavailable"      ENDOF
+           $8012 OF " Linear memory unavailable"   ENDOF
+           $8013 OF " Physical memory unavailable" ENDOF
+           $8014 OF " Backing store unavailable"   ENDOF
+           $8015 OF " Callback unavailable"        ENDOF
+           $8016 OF " Handle unavailable"          ENDOF
+           $8017 OF " Lock count exceeded"         ENDOF
+           $8018 OF " Resource owned exclusively"  ENDOF
+           $8019 OF " Resource owned shared"       ENDOF
+           $8021 OF " Invalid value"               ENDOF
+           $8022 OF " Invalid selector"            ENDOF
+           $8023 OF " Invalid handle"              ENDOF
+           $8024 OF " Invalid callback"            ENDOF
+           $8025 OF " Invalid linear address"      ENDOF
+           $8026 OF " Invalid request"             ENDOF
         ENDCASE ; 1 2 #PARMS
 
 CR .( Loading FSAVE.4TH ...)
@@ -650,13 +689,19 @@ FORTH DEFINITIONS
 	     256  OF  DOES> SWAP 256* + CELL+ EXIT	   ENDOF
 	   ENDCASE
         DOES>  (( index -- addr ))
-	   TUCK @ * + CELL+ ; 2 0 #PARMS
+	   TUCK @ * + CELL+ EXIT  ; 2 0 #PARMS
 
-: (PATCH)	(( ca old-ca -- ))
-	DUP >HEAD |SIZE
-        5 SWAP !        // size became 5, the rest codes became garbage.
+: <PATCH>       ( adr old-adr -- )        // patch old-adr to 'JMP adr'
 	$E9 OVER C!	// laydown 'JMP'
 	1+ DUP CELL+ ROT SWAP - SWAP !  ; 2 0 #PARMS INVISIBLE
+
+: (PATCH)	( ca old-ca -- ) // modified for patching C functions
+	DUP CODE>HEAD DUP 0<> IF
+           |SIZE  5 SWAP !  // size became 5, the rest codes became garbage.
+        ELSE
+           DROP
+        ENDIF
+        <PATCH> ; 2 0 #PARMS INVISIBLE
 
 : PATCH		(( ca -- )TIB: <target-name> )
         // redirect <target-name>'s code into 'ca'

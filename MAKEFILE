@@ -1,20 +1,20 @@
 #  makefile for DJGPP
 #  Common Forth loader for GO32
 #
-#                                               Written by  : Luke Lee
-#                                               Last update : 12/10/'95
+#						Written by  : Luke Lee
+#						Last update : 12/10/'95
 
-CFLAGS = -c -g -fomit-frame-pointer
+CFLAGS = -c -g
 
-OUT =   cf.o \
+OUT =	cf.o \
 	invokec.o \
 	extended.o
 
-LIB =   -lc -lg -lgpp -lgcc -lgpl -lm -lpc -lgrx
+LIB =   -lc -lg -lgpp -lgcc -lm -lpc -lgrx20
 
-LNK =   -Wl,-Map,CF.MAP,-T,SECTIONS.LD
+LNK =	-Wl,-Map,CF.MAP,-T,SECTIONS.LD
 
-all: cf.o invokec.o extended.o cf.
+all: cf.o invokec.o extended.o cf.exe
 
 cf.o:   cf.cc invokec.h
 	gcc $(CFLAGS) cf.cc
@@ -25,10 +25,9 @@ invokec.o: invokec.cc invokec.h
 extended.o: extended.cc invokec.h
 	   gcc $(CFLAGS) extended.cc
 
-cf. :   $(OUT)
+cf.exe : $(OUT) sections.ld
 	gcc $(OUT) -o cf $(LIB) $(LNK)
-	
-cf.exe : cf.
-	 bind cf
-	 stubedit cf.exe keepmem=512k
+	copy cf.exe turnkey.exe
+	strip turnkey.exe
 
+

@@ -1,5 +1,5 @@
 // Data Structure Defining Tools                Written by : Luke Lee
-// For Common Forth 1.63+                                [ 08/22/'95 ]
+// For Common Forth 1.63+                                [ 02/18/'97 ]
 
         // 2/14/'93 Add head-structure relative words
         // 2/23/'93 Modify 0 offset fields to immediate words, since there
@@ -13,6 +13,7 @@
 	// 08/18/'95 Fix bug while the nested data structure is the first
 	//	     field of it's parent structure .	
 	// 08/22/'95 Add UNION definitions.
+        // 02/18/'97 Add a variable ALIGNMENT.
 
 // Syntax :
 //	 STRUCT: ANOTHER-RECORD:
@@ -86,18 +87,36 @@ VARIABLE CURR-STRUCT-SIZE 	INVISIBLE // current value is 0
 VARIABLE CURR-UNION-MAX		INVISIBLE
 VARIABLE STRUCT-NESTING-LEVEL	INVISIBLE
 VARIABLE STRUCT/UNION?		INVISIBLE
+VARIABLE ALIGNMENT              
+VARIABLE FIELD-UNIT             INVISIBLE       // unit size of current field
+ALIGNMENT ON        // DEFAULT
+1 FIELD-UNIT !
 
 2VARIABLE STRUCT/UNION-RESETTER	INVISIBLE
 
-: STRUCT/UNION-RESET	(( -- ))
+: STRUCT/UNION-RESET	( -- )
+        ALIGNMENT ON    1 FIELD-UNIT !
 	0 DUP 2DUP CURR-STRUCT-SIZE ! STRUCT/UNION? !
 	CURR-UNION-MAX ! STRUCT-NESTING-LEVEL ! 
 	STRUCT/UNION-RESETTER POP-RESETTER  ; 0 0 #PARMS INVISIBLE
 
-: FIELD:  (( field-size -- )) RECURSIVE // not recursive call,just reveals it
-     CREATE
-        IMMEDIATE 1 1 #PARMS
-        ['] FIELD: LAST @ |USER-DEFINED ! // for type-checking by 'OFFSET'
+: DO-ALIGNMENT          ( -- )
+        // for 16-bit/32-bit/64-bit alignments
+        ALIGNMENT @ NOT IF EXIT ENDIF
+        FIELD-UNIT @
+        DUP CELL = IF
+            CURR-STRUCT-SIZE DUP @ 3 + [ 3 NOT ] LITERAL AND SWAP !
+        ELSE 
+        DUP 2 = IF
+            CURR-STRUCT-SIZE DUP @ 1+  [ 1 NOT ] LITERAL AND SWAP !
+        ENDIF ENDIF DROP ; NOPARM INVISIBLE
+
+: FIELDS:  ( #field -- )  RECURSIVE // not recursive call,just reveals it
+     // Field size is decided by current FIELD-UNIT
+     CREATE  IMMEDIATE 1 1 #PARMS
+        DO-ALIGNMENT
+        ['] FIELDS: LAST @ |USER-DEFINED ! // for type-checking by 'OFFSET'
+        FIELD-UNIT @ *          // (field-size * FIELD-UNIT)
         DUP LAST @ |SIZE !
 
 	STRUCT/UNION? @
@@ -109,7 +128,7 @@ VARIABLE STRUCT/UNION?		INVISIBLE
 	   0 DUP ,  // offset should always be zero
 	   SWAP CURR-UNION-MAX @ MAX CURR-UNION-MAX !
 	ELSE
-	   DROP CR ." * FIELD: Not defining in STRUCT: or UNION: ." CR ABORT
+	   DROP CR ." * FIELDS: Not defining in STRUCT: or UNION: ." CR ABORT
 	ENDIF ENDIF
 
     	0 = IF // offset is zero, compile nothing into code space
@@ -121,6 +140,11 @@ VARIABLE STRUCT/UNION?		INVISIBLE
 	      +
 	  ENDIF
     	ENDIF  ;       1 0 #PARMS
+
+: FIELD:        ( field-size -- )
+        FIELD-UNIT @  1 FIELD-UNIT !
+        SWAP FIELDS:
+        FIELD-UNIT ! ; 1 0 #PARMS
 
 : (Complete?)	(( size -- ))
 	(DefineNotComplete) = IF
@@ -161,7 +185,7 @@ VARIABLE STRUCT/UNION?		INVISIBLE
      DOES>
 	(STRUCT/UNION)DOES   ; 0 4 #PARMS
 
-: ;STRUCT	(( <last-type> LAST-SIZE head pfa -- ))
+: ;STRUCT	( <last-type> LAST-SIZE head pfa -- )
      STRUCT/UNION? @ <STRUCT> <> IF
 	RDROP 2DROP STRUCT/UNION-RESET
 	CR ." * ;STRUCT : Not defining STRUCT: ." CR ABORT
@@ -176,13 +200,13 @@ VARIABLE STRUCT/UNION?		INVISIBLE
      	 STRUCT-NESTING-LEVEL @ 1 > IF // nesting defining STRUCT:
      	     CURR-STRUCT-SIZE @ +
      	 ENDIF
-     ENDIF	
+     ENDIF
      CURR-STRUCT-SIZE !
-     -1 STRUCT-NESTING-LEVEL +!		
+     -1 STRUCT-NESTING-LEVEL +!
      STRUCT-NESTING-LEVEL @ 0= IF  STRUCT/UNION-RESETTER POP-RESETTER  ENDIF
      ; 4 0 #PARMS
 
-: ;UNION	(( <last-type> LAST-union-SIZE head pfa -- ))
+: ;UNION	( <last-type> LAST-union-SIZE head pfa -- )
      STRUCT/UNION? @ <UNION> <> IF
 	RDROP 2DROP STRUCT/UNION-RESET
 	CR ." * ;UNION : Not defining UNION: ." CR ABORT
@@ -199,7 +223,7 @@ VARIABLE STRUCT/UNION?		INVISIBLE
 	ENDIF
      ENDIF
      CURR-UNION-MAX  !
-     -1 STRUCT-NESTING-LEVEL +!		
+     -1 STRUCT-NESTING-LEVEL +!
      STRUCT-NESTING-LEVEL @ 0= IF  STRUCT/UNION-RESETTER POP-RESETTER  ENDIF
      ; 4 0 #PARMS
 
@@ -236,20 +260,46 @@ VARIABLE STRUCT/UNION?		INVISIBLE
          R> EXECUTE
      ENDIF ; 4 0 #PARMS
 
-: BYTE:   1 FIELD: ; 0 0 #PARMS
+: SWAP-INTO     ( value addr -- value' )
+        // Swap 'value' into addr, return original content of addr
+        SWAP OVER @ -ROT SWAP ! ; 2 1 #PARMS
 
-: HWORD:  CELL 2/ FIELD: ; 0 0 #PARMS
+: BYTE:   ( -- )        1 FIELD: ; 0 0 #PARMS
+: BYTES:  ( #bytes -- ) FIELD:   ; 1 0 #PARMS
 
-: WORD:   CELL FIELD: ; 0 0 #PARMS
+: HWORD:  ( -- )
+          CELL 2/ FIELD-UNIT SWAP-INTO
+          1 FIELDS:
+          FIELD-UNIT !  ; 0 0 #PARMS
+: HWORDS: ( #half-words -- )
+          CELL 2/ FIELD-UNIT SWAP-INTO
+          SWAP FIELDS:
+          FIELD-UNIT !  ; 1 0 #PARMS
 
-: 2WORD:  CELL 2* FIELD: ; 0 0 #PARMS
+: WORD:   ( -- )
+          CELL FIELD-UNIT SWAP-INTO
+          1 FIELDS:
+          FIELD-UNIT !  ; 0 0 #PARMS
+: WORDS:  ( #words -- )
+          CELL FIELD-UNIT SWAP-INTO
+          SWAP FIELDS:
+          FIELD-UNIT !  ; 1 0 #PARMS
 
-: SIZEOF  (( -- SIZE ))
+: 2WORD:  ( -- )
+          2 CELL* FIELD-UNIT SWAP-INTO
+          1 FIELDS:
+          FIELD-UNIT !  ; 0 0 #PARMS
+: 2WORDS: ( #dwords -- )
+          2 CELL* FIELD-UNIT SWAP-INTO
+          SWAP FIELDS:
+          FIELD-UNIT !  ; 1 0 #PARMS
+
+: SIZEOF  ( -- SIZE )
      ' >HEAD |SIZE @ ; IMMEDIATE 0 1 #PARMS
 
-: OFFSET (( -- OFFSET )) 
-     ' DUP >HEAD |USER-DEFINED @   ['] FIELD: = NOT  IF
-        CR ." * OFFSET must be applied on words defined by FIELD: ." CR ABORT
+: OFFSET  ( -- OFFSET )
+     ' DUP >HEAD |USER-DEFINED @   ['] FIELDS: = NOT  IF
+        CR ." * OFFSET must be applied on words defined by FIELDS: ." CR ABORT
      ENDIF
      >BODY @ ; IMMEDIATE 0 1 #PARMS
 
