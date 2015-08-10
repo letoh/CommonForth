@@ -1,6 +1,6 @@
 // Floating point operations
 				// Written by : Luke Lee
-				// Version 1.3
+				// Version 1.4
 				//      update : 08/13/'95
 				// 	update : 11/28/'95
 				// 	update : 12/22/'95
@@ -181,14 +181,13 @@ COMMENT;
 ' exp	ALIAS	FEXP	(( f -- f' ))
 ' log	ALIAS	FLN	// f -- ln(f)	base e
 ' log10 ALIAS	FLOG	// f -- log(f)	base 10
-' log2  ALIAS	FLG	// f -- lg(f)	base 2
+// ' log2  ALIAS   FLG     // f -- lg(f)   base 2
 
 	      : F**	(( f1 f2 -- f1**f2 ))	FSWAP pow ; 4 2 #PARMS
-' pow10	ALIAS	F10**	(( f -- 10**f ))
-' pow2	ALIAS	F2**	(( f -- 2**f ))
+// ' pow10	ALIAS	F10**	(( f -- 10**f ))
+// ' pow2	ALIAS	F2**	(( f -- 2**f ))
 
 #ENDIF	// 387FLOAT
 
 ONLY FORTH ALSO DEFINITIONS
 
-

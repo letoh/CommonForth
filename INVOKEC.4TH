@@ -17,9 +17,11 @@
 // 01/28/'96 : Rename TRANSLATE-BLOCK into TRANSLATE .
 // 07/02/'96 : Modify constant value of P_WAIT according to different compiler
 
-: DJGPP_GO32 ; INVISIBLE
+// : DJGPP_GO32 ; INVISIBLE
 
 // : WATCOM_C/C++ ; INVISIBLE
+
+: BORLAND_C++ ; INVISIBLE
 
 DECIMAL
 
@@ -85,7 +87,7 @@ CREATE function-name$   64 ALLOT
 	   too_many_return_values!
         ENDCASE ; 2 0 #PARMS
 
-#DEFINED DJGPP_GO32 #IF
+#DEFINED DJGPP_GO32 #DEFINED BORLAND_C++ OR #IF
 
 : float_settle_return_value	(( in out -- ))  // for DJGPP 
 	Floating NOT AND
@@ -400,7 +402,7 @@ STRUCT: tm
 
 ' (ONLY) PATCH ONLY
 
-#DEFINED DJGPP_GO32 #IF
+#DEFINED DJGPP_GO32 #DEFINED BORLAND_C++ OR #IF
 
   WARNING @ WARNING OFF
 
@@ -448,8 +450,10 @@ $80 CONSTANT BLINK
 #EXISTED DJGPP_GO32 #IF
   1	CONSTANT	P_WAIT
   3	CONSTANT	P_OVERLAY
-#ELSE #EXISTED WATCOM_C/C++ #IF         // 07/02/'96 modified
-  0     CONSTANT        P_WAIT
+#ELSE 
+#EXISTED WATCOM_C/C++
+#EXISTED BORLAND_C++ OR #IF         // 07/02/'96 modified
+  0     CONSTANT    P_WAIT
 #ENDIF #ENDIF
 
 -1	CONSTANT 	EOF
@@ -469,9 +473,15 @@ clock DROP  // initialize
 #ENDIF
 
 #EXISTED clock(  #EXISTED WATCOM_C/C++  AND
+#EXISTED clock(  #EXISTED BORLAND_C++   AND OR
 #IF
 
+#EXISTED WATCOM_C/C++ #IF
 100     CONSTANT 	CLOCKS_PER_SEC	// defined in <time.h>
+#ELSE
+1000    CONSTANT 	CLOCKS_PER_SEC	// defined in <time.h>
+#ENDIF
+
 clock DROP  // initialize
 : MS	(( n -- ))  // pause for n MS, minimum available amount is 10 MS
 	[ 1000 CLOCKS_PER_SEC / ] LITERAL /

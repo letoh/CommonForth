@@ -73,7 +73,7 @@ CELL GSizeX  ARRAY:  []QSortEntry
 : QSortInit     (| -- |)
         DrawAxis
         GSizeX 0 ?DO
-           random YRange MOD     #I []QSortEntry   !    #I QDraw
+           rand YRange MOD     #I []QSortEntry   !    #I QDraw
         LOOP ;
 
 : .QEntries     (( left right -- ))
@@ -111,7 +111,7 @@ CELL GSizeX  ARRAY:  []SSortBuffer
 : SSortInit     (| -- |)
         DrawAxis
         GSizeX 0 ?DO
-           random YRange MOD     #I []SSortEntry   !    #I SDraw
+           rand YRange MOD     #I []SSortEntry   !    #I SDraw
         LOOP ;
 
 : SCheckResult  (( left right -- ))

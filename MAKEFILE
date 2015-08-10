@@ -1,34 +1,86 @@
-#  makefile for DJGPP
-#  Common Forth loader for GO32
 #
-#                                               Written by  : Luke Lee
-#                                               Last update : 12/10/'95
+# Borland C++ IDE generated makefile
+#
+.AUTODEPEND
 
-CFLAGS = -c -g -fomit-frame-pointer
 
-OUT =   cf.o \
-	invokec.o \
-	extended.o
+#
+# Borland C++ tools
+#
+IMPLIB  = Implib
+BCCD32     = Bcc32 +BccD32.cfg
+TLINK32 = TLink32
+TLIB    = TLib
+TASM32  = Tasm32
+#
+# IDE macros
+#
 
-LIB =   -lc -lg -lgpp -lgcc -lgpl -lm -lpc -lgrx
 
-LNK =   -Wl,-Map,CF.MAP,-T,SECTIONS.LD
+#
+# Options
+#
+IDE_LFLAGSD32 =  -LK:\BC45\LIB
+LLATD32_cfdexe =  -Tpe -ax -LK:\BC45\LIB
+RLATD32_cfdexe = 
+BLATD32_cfdexe = 
+CNIEAT_cfdexe = -IK:\BC45\INCLUDE -D
+LNIEAT_cfdexe = -x
+LEAT_cfdexe = $(LLATD32_cfdexe)
+REAT_cfdexe = $(RLATD32_cfdexe)
+BEAT_cfdexe = $(BLATD32_cfdexe)
 
-all: cf.o invokec.o extended.o cf.
+#
+# Dependency List
+#
+Dep_cf = \
+   cf.exe
 
-cf.o:   cf.cc invokec.h
-	gcc $(CFLAGS) cf.cc
+cf : BccD32.cfg $(Dep_cf)
+  echo MakeNode
+  copy cf.exe turnkey.exe
+  tdstrp32 turnkey.exe
 
-invokec.o: invokec.cc invokec.h
-	   gcc $(CFLAGS) invokec.cc
+Dep_cfdexe = \
+   extended.obj\
+   invokec.obj\
+   cf.obj
 
-extended.o: extended.cc invokec.h
-	   gcc $(CFLAGS) extended.cc
+cf.exe : $(Dep_cfdexe)
+  $(TLINK32) @&&|
+ /v $(IDE_LFLAGSD32) $(LEAT_cfdexe) $(LNIEAT_cfdexe) +
+K:\BC45\LIB\c0x32.obj+
+extended.obj+
+invokec.obj+
+cf.obj
+$<,$*
+K:\BC45\LIB\dpmi32.lib+
+K:\BC45\LIB\bidsf.lib+
+K:\BC45\LIB\tv32.lib+
+K:\BC45\LIB\bgi32.lib+
+K:\BC45\LIB\cw32.lib
 
-cf. :   $(OUT)
-	gcc $(OUT) -o cf $(LIB) $(LNK)
-	
-cf.exe : cf.
-	 bind cf
-	 stubedit cf.exe keepmem=512k
+|
+
+extended.obj :  extended.cpp
+  $(BCCD32) -c @&&|
+ $(CEAT_cfdexe) $(CNIEAT_cfdexe) -o$@ extended.cpp
+|
+
+invokec.obj :  invokec.cpp
+  $(BCCD32) -c @&&|
+ $(CEAT_cfdexe) $(CNIEAT_cfdexe) -o$@ invokec.cpp
+|
+
+# Compiler configuration file
+BccD32.cfg : 
+   Copy &&|
+-R
+-v
+-vi
+-H
+-H=cf.csm
+-WX
+| $@
+
 

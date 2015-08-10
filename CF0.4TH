@@ -2291,7 +2291,7 @@ CODE: <forth_interpret>  ( ? -- Error? ) ( RStack: length string retadr )
 CR .( * Hardware reset ...)
 
 : VER   ( -- n ) // Return the version number of this implementation.
-	$1669 ; 0 1 #PARMS
+	$1668 ; 0 1 #PARMS
 
 : hi    ( -- ) // Display the sign-on message of Common Forth.
         CR

@@ -3,7 +3,7 @@
 : K (( n -- nK )) 1024 * ; 1 1 #PARMS
 : M (( n -- nM )) 1024 K * ; 1 1 #PARMS
 
-$140000         CONSTANT        BASE-ADDRESS
+$480000         CONSTANT        BASE-ADDRESS
 
 4 M             CONSTANT        CF-MemorySpace
 
@@ -80,4 +80,3 @@ STRUCT: CF-MemoryMap
 BASE-ADDRESS |WORK-SPACE |END-FORTH-VOCTABLE  CONSTANT  HP0
 
 
-

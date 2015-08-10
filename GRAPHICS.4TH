@@ -23,9 +23,12 @@ NEEDS DOSCMD.4TH
 #ELSE #DEFINED DJGPP_GO32 #IF
  .( * Loading GRX.4TH ...)
  NEEDS GRX.4TH
+#ELSE #DEFINED BORLAND_C++ #IF
+ .( * Loading BGIGRAPH.4TH ...)
+ NEEDS BGIGRAPH.4TH
 #ELSE
  .( * No suitable graphics interface implemented.) BEEP CR ABORT
-#ENDIF #ENDIF
+#ENDIF #ENDIF #ENDIF
 .( ... Loaded ) CR
 
 // ////////////////////////////////////////////////////////////////////// //
@@ -121,8 +124,8 @@ COMMENT: // //////////////////////////////////////////////// //
 
 ;COMMENT // //////////////////////////////////////////////// //
 
-G640x480x16 VALUE  GDefaultMode
-0  	    VALUE  GCurrentMode	// default text-mode
+G640x480x256 VALUE  GDefaultMode
+0  	     VALUE  GCurrentMode	// default text-mode
 
 ONLY GRAPHICS ALSO HIDDEN ALSO DEFINITIONS
 

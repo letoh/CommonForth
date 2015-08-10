@@ -172,8 +172,8 @@ DEF-PIT PIT
                 30 16 AT-XY ." Score:"
                 30 17 AT-XY ." Pieces:"
                 30 18 AT-XY ." Levels:"
-//                 0 22 AT-XY ."  ==== This program was written 1994 in pure dpANS Forth by Dirk Uwe Zoller ===="
-//                 0 23 AT-XY ."  =================== Copy it, port it, play it, enjoy it! =====================" 
+                 0 23 AT-XY ."  ==== This program was written 1994 in pure dpANS Forth by Dirk Uwe Zoller ===="
+                 0 24 AT-XY ."  =================== Copy it, port it, play it, enjoy it! =====================" 
                  ;
 
 : UPDATE-SCORE  // --- ; display current score
@@ -381,4 +381,3 @@ FORTH DEFINITIONS
                 0 23 AT-XY CR ;
 
 ONLY FORTH ALSO DEFINITIONS
-

@@ -1,0 +1,32 @@
+Common Forth Borland C++ port
+-----------------------------
+
+ 1. *** Important note ***
+    The subdirectory REDIST contains BGI and Borland DPMI hosts,
+    serveral files are needed to run this CF port. All these files 
+    are redistributed under the terms listed in 
+        "Borland PowerPack for DOS, User's Guide", first page.
+
+    You can run this system without Borland C++ compiler installed :
+      1. Copy REDIST directory to where CF.EXE is.
+        or 
+      2. Add DOS PATH to include REDIST subdirectory.
+
+ 2. This directory contains Common Forth for Borland C++, most of the
+    source files are the same as "CF for DJGPP-V1" and "CF for WATCOM".
+
+ 3. This system is build with Borland C++ 4.5 and PowerPack.
+    Platform : DPMI32.
+
+ 4. Also BGI graphics are included in this version.
+    Try DEMO.BAT.
+
+ 5. Virtual memory facility is provided by Borland's DPMI host :
+    32RTM.EXE. See Borland PowerPack manual for detail.
+    32RTM.EXE is automatically loaded when you start CF.EXE .
+
+ 6. Exceptions are not handled. They will abort the program.
+    
+                                                Luke Lee
+                                      http://www.sinica.edu.tw/~lukelee
+
