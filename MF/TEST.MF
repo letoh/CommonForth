@@ -54,12 +54,3 @@ CR .( ----- Testing ANDTHEN ----- ) CR
 .( ----- Mixing Testing -----) CR
 TEST9
 
-CR .( **** Testing INFIX syntax **** ) CR
-.INFIX
-: TESTIFX  
-      ." (( 12 + 34 * 45 / 5 - 56 * 78 / 90 ))" 
-      (( 12 + 34 * 45 / 5 - 56 * 78 / 90 )) 
-      ."  Result = " . CR ;
-TESTIFX FORGET TESTIFX
-.INFIX
-

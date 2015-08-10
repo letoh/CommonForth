@@ -1,7 +1,6 @@
-       Common  Forth  Experiment  Version  1.665   User  Manual
+       Common  Forth  Experiment  Version  1.668   User  Manual
   ออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออออ
 							Luke Lee
-							05/10/'96
   ( This file is still under construction !!! )
 
     þ  This software is distributed WITHOUT ANY WARRANTY.
@@ -28,9 +27,9 @@
  I. Commonly used words :
  ------------------------
 
-  WORDS    (( -- ))  Display all the available commands in this vocabulary .
+  WORDS    ( -- )  Display all the available commands in this vocabulary .
 
-  ALLWORDS (( -- ))  Display complete command set in this vocabulary,
+  ALLWORDS ( -- )  Display complete command set in this vocabulary,
 		     including any INVISIBLE words which should not be used .
 
   SEE <WordName>     Decompile <WordName> into source code .
@@ -41,18 +40,18 @@
 			SEE WORDS
 			SEE SEE
 
-  <SEE>	   (( code -- ))	Decompile an address .
+  <SEE>	   ( code -- )	Decompile an address .
 	  Example :
 			' WORDS <SEE>
 			'?KEY @ <SEE>
 
-  BYE      (( -- ))  Leave this system, return to DOS .
+  BYE      ( -- )  Leave this system, return to DOS .
 
-  BYE'     (( -- ))  Terminate this system immediately, if BYE fails, use
+  BYE'     ( -- )  Terminate this system immediately, if BYE fails, use
 		     this instead.
        <<  NOTE : If it still won't work, press <CTRL>-<BREAK> .  >>
 
-  CLS      (( -- ))  Clear screen .
+  CLS      ( -- )  Clear screen .
 
 ...............................................................................
 : NOTE : If your VGA system supports VESA BIOS, you should set the following  :
@@ -101,7 +100,6 @@
 		     must also be typed in .
 
 	  For example : FLOAD DEMO_GRX.4TH
-			FLOAD DEMO_IFX.4TH
 			FLOAD DEMO_C.4TH
 			FLOAD 3DROTATE.SEQ
 			FLOAD 3DR.4TH
@@ -115,11 +113,11 @@
 
   RELOAD <filename>  UNLOAD a program and FLOAD it again .
 
-  MULTI  (( -- ))    Multitasking mode, if any exception catched by this system
+  MULTI  ( -- )    Multitasking mode, if any exception catched by this system
 		     ,system will be reset to single tasking mode, which will
 		     cause the cursor in graphics mode to disappear.
 
-  TEXT-MODE (( -- )) Switch display to 80x25 text mode, the display speed is
+  TEXT-MODE ( -- ) Switch display to 80x25 text mode, the display speed is
 		     faster since each character requires only 2 bytes .
 		     This facility is provided by GRAPHICS.4TH .        
 
@@ -317,330 +315,331 @@
 þ Frequently Used Constants :
 -----------------------------
 
- TRUE  (( -- -1 ))
- FALSE (( -- 0  ))
- CELL  (( -- 4  ))
- BL    (( -- 32 ))  Return 32, the blank character in ASCII code
- LF    (( -- 10 ))  Return 10, Line feed character in ASCII code.       
- NULL$ (( -- a ))   Return address of a null string with zero count.
- NULL  (( -- 0 ))   Zero pointer .
+ TRUE  ( -- -1 )
+ FALSE ( -- 0  )
+ CELL  ( -- 4  )
+ BL    ( -- 32 )  Return 32, the blank character in ASCII code
+ LF    ( -- 10 )  Return 10, Line feed character in ASCII code.       
+ NULL$ ( -- a )   Return address of a null string with zero count.
+ NULL  ( -- 0 )   Zero pointer .
 
 ---------------------
 þ Memory Operations :
 ---------------------
 
-CODE: !      (( w a -- ))   
+CODE: !      ( w a -- )   
 	      Pop the data stack to memory.
-CODE: H!     (( hw a -- ))  
+CODE: H!     ( hw a -- )  
 	      Pop the data stack to half-word ( 16bit ) memory.
-CODE: C!     (( c b -- ))   
+CODE: C!     ( c b -- )   
 	      Pop the data stack to byte memory.
-    : 2!     (( d a -- ))   
+    : 2!     ( d a -- )   
 	      Store the double integer to address a.
-CODE: @      (( a -- w ))   
+CODE: @      ( a -- w )   
 	      Push memory location to the data stack.
-CODE: H@     (( a -- hw ))  
+CODE: H@     ( a -- hw )  
 	      Push halfword memory location to the data stack.
-CODE: C@     (( b -- c ))   
+CODE: C@     ( b -- c )   
 	      Push byte memory location to the data stack.
-    : 2@     (( a -- d ))   
+    : 2@     ( a -- d )   
 	      Fetch double integer from address a.
-    : MOVE   (( from to count -- ))
+    : MOVE   ( from to count -- )
 	      Move memory block with 'count' bytes, move from 'from' to 'to'.
 	      This word will determine the correct direction if 'from' and 'to'
 	      are overlapped.   
-    : CMOVE  (( from to count -- ))   
+    : CMOVE  ( from to count -- )   
 	      Copy memory block 'count' bytes from 'from' to 'to'. 
 	      Direction : lower memory first.
-    : CMOVE> (( from to count -- )) 
+    : CMOVE> ( from to count -- ) 
 	      Copy memory block 'count' bytes from 'from' to 'to'. 
 	      Direction : higher memory first.
-    : FILL   (( addr count ch -- ))
+    : FILL   ( addr count ch -- )
 	      Fill 'count' bytes of character 'ch' to area beginning at 'addr'.
-    : ERASE  (( addr count -- )) Fill memory with zeros.
+    : ERASE  ( addr count -- ) Fill memory with zeros.
 	      Fill 'addr' with 'count' bytes of zero.
-    : OFF    (( adr -- ))   
+    : OFF    ( adr -- )   
 	      Clear the content of adr . ( Set to FALSE = 0 )
-    : ON     (( adr -- ))   
+    : ON     ( adr -- )   
 	      Set the content of adr . ( Set to TRUE = -1 )
-    : +!     (( n addr -- ))  
+    : +!     ( n addr -- )  
 	      Add n to the contents at address addr.
 
 ------------------------
 þ I/O Port fetch/store :
 ------------------------
 
-CODE: PC@    (( addr -- byte ))   Fetch byte from port 'addr'
-CODE: PH@    (( addr -- byte ))   Fetch 16bit from port 'addr'
-CODE: P@     (( addr -- byte ))   Fetch 32bit from port 'addr'
-CODE: PC!    (( byte addr -- ))   Store byte to port 'addr'
-CODE: PH!    (( 16bit addr -- ))  Store 16bit to port 'addr'
-CODE: P!     (( 32bit addr -- ))  Store 32bit to port 'addr'
+CODE: PC@    ( addr -- byte )   Fetch byte from port 'addr'
+CODE: PH@    ( addr -- byte )   Fetch 16bit from port 'addr'
+CODE: P@     ( addr -- byte )   Fetch 32bit from port 'addr'
+CODE: PC!    ( byte addr -- )   Store byte to port 'addr'
+CODE: PH!    ( 16bit addr -- )  Store 16bit to port 'addr'
+CODE: P!     ( 32bit addr -- )  Store 32bit to port 'addr'
 
 --------------------
 þ Stack Operations :
 --------------------
 
-CODE: DUP   (( w -- w w ))              Duplicate the top stack item.
-CODE: DROP  (( w -- ))                  Discard top stack item.
-CODE: SWAP  (( w1 w2 -- w2 w1 ))        Exchange top two stack items.
-CODE: OVER  (( w1 w2 -- w1 w2 w1 ))     Copy second stack item to top.
-CODE: ROT   (( w1 w2 w3 -- w2 w3 w1 ))  Rot 3rd item to top. ( Rotate out )
-CODE: -ROT  (( w1 w2 w3 -- w3 w1 w2 ))  Rot top item to 3rd. ( Rotate in )
-CODE: NIP   (( w1 w2 -- w2 ))           Discard second of stack
+CODE: DUP   ( w -- w w )              Duplicate the top stack item.
+CODE: DROP  ( w -- )                  Discard top stack item.
+CODE: SWAP  ( w1 w2 -- w2 w1 )        Exchange top two stack items.
+CODE: OVER  ( w1 w2 -- w1 w2 w1 )     Copy second stack item to top.
+CODE: ROT   ( w1 w2 w3 -- w2 w3 w1 )  Rot 3rd item to top. ( Rotate out )
+CODE: -ROT  ( w1 w2 w3 -- w3 w1 w2 )  Rot top item to 3rd. ( Rotate in )
+CODE: NIP   ( w1 w2 -- w2 )           Discard second of stack
 
-CODE: 2DUP  (( a b -- a b a b ))        Duplicate a double-precision item
-CODE: 2DROP (( n n -- ))                Drop a double-precision (64bit) item.
-    : 2SWAP (( a b c d -- c d a b ))
-    : 2OVER (( a b c d -- a b c d a b ))
-    : 2ROT  (( a b c d e f -- c d e f a b ))
-    : TUCK  (( n1 n2 -- n2 n1 n2 ))     
+CODE: 2DUP  ( a b -- a b a b )        Duplicate a double-precision item
+CODE: 2DROP ( n n -- )                Drop a double-precision (64bit) item.
+    : 2SWAP ( a b c d -- c d a b )
+    : 2OVER ( a b c d -- a b c d a b )
+    : 2ROT  ( a b c d e f -- c d e f a b )
+    : TUCK  ( n1 n2 -- n2 n1 n2 )     
 
-CODE: PICK  (( ... +n -- ... w )) Copy the nth stack item to tos.
-CODE: 3DROP (( n n n -- ))       Drop three items on data stack.
-CODE: 4DROP (( n n n n -- ))     Drop four items on data stack.
-CODE: 5DROP (( n n n n n -- ))
-CODE: 6DROP (( n n n n n n -- ))
-CODE: 7DROP (( n n n n n n n -- ))
-CODE: 8DROP (( n n n n n n n n -- ))
-CODE: >R    (( w -- ))           Push top of data stack to the return stack.
-CODE: R@    (( -- w ))           Copy top of return stack to the data stack.
-CODE: R>    (( -- w ))           Pop the return stack to the data stack.
-CODE: RDROP (( -- ))             Drop top of return stack.
-    : ?DUP  (( w -- w w | 0 ))   Dup tos if its is not zero.
+CODE: PICK  ( ... +n -- ... w ) Copy the nth stack item to tos.
+CODE: 3DROP ( n n n -- )       Drop three items on data stack.
+CODE: 4DROP ( n n n n -- )     Drop four items on data stack.
+CODE: 5DROP ( n n n n n -- )
+CODE: 6DROP ( n n n n n n -- )
+CODE: 7DROP ( n n n n n n n -- )
+CODE: 8DROP ( n n n n n n n n -- )
+CODE: >R    ( w -- )           Push top of data stack to the return stack.
+CODE: R@    ( -- w )           Copy top of return stack to the data stack.
+CODE: R>    ( -- w )           Pop the return stack to the data stack.
+CODE: RDROP ( -- )             Drop top of return stack.
+    : ?DUP  ( w -- w w | 0 )   Dup tos if its is not zero.
 
 ---------------------------------
 þ Forth CPU Register Operations :
 ---------------------------------
 
-CODE: RP@   (( -- a ))   Push the current RP to the data stack.
-CODE: RP!   (( a -- ))   Set the return stack pointer.
-CODE: SP@   (( -- a ))   Push the current data stack pointer.
-CODE: SP!   (( a -- ))   Set the data stack pointer.
-CODE: UP@   (( -- a ))   Pointer to the user area.
-CODE: UP!   (( a -- ))   Set user pointer to 'a'.
+CODE: RP@   ( -- a )   Push the current RP to the data stack.
+CODE: RP!   ( a -- )   Set the return stack pointer.
+CODE: SP@   ( -- a )   Push the current data stack pointer.
+CODE: SP!   ( a -- )   Set the data stack pointer.
+CODE: UP@   ( -- a )   Pointer to the user area.
+CODE: UP!   ( a -- )   Set user pointer to 'a'.
 
 ---------------------------------------
 þ Logical operations ( bit operations )
 ---------------------------------------
 
-CODE: NOT     (( w -- w ))     One's complement of TOS.
-CODE: AND     (( w w -- w ))   Bitwise AND.
-CODE: OR      (( w w -- w ))   Bitwise inclusive OR.
-CODE: XOR     (( w w -- w ))   Bitwise exclusive OR.
-CODE: =       (( w w -- t ))   Return true if top two are equal.
-CODE: <       (( n1 n2 -- t )) Signed compare of n1 and n2.
-CODE: >       (( n1 n2 -- t )) 
-    : <=      (( n1 n2 -- t ))
-    : >=      (( n1 n2 -- t ))
-    : <>      (( n1 n2 -- t ))
-CODE: U<      (( u1 u2 -- t )) Unsigned comparision of u1 and u2
-CODE: U>      (( u1 u2 -- t )) 
-    : U>=     (( u1 u2 -- t ))
-    : U<=     (( u1 u2 -- t ))
-CODE: 0<      (( n -- t ))   Return true if n is negative.
-CODE: 0=      (( n -- t ))   Return true if n is zero.
-CODE: 0<>     (( n -- t ))   Return true if n is not zero.
-CODE: 0>      (( n -- f ))   Return true if n is positive.
-    : 0>=     (( n -- t ))   Return true if n>=0
-    : 0<=     (( n -- t ))   Return true if n<=0
-    : [...]   (( n l h -- t ))  TRUE if l <= n <= h ( signed comparsion )
-    : [...)   (( n l h -- t ))  TRUE if l <= n <  h ( signed comparsion )
-    : (...]   (( n l h -- t ))  TRUE if l <  n <= h ( signed comparsion )
-    : (...)   (( n l h -- t ))  TRUE if l <  n <  h ( signed comparsion )
-    : BETWEEN (( N LO HI -- T/F )) Same as [...]
-    : WITHIN  (( u ul uh -- t )) Unsigned comparsion, return TRUE if u is 
+CODE: NOT     ( w -- w )     One's complement of TOS.
+CODE: AND     ( w w -- w )   Bitwise AND.
+CODE: OR      ( w w -- w )   Bitwise inclusive OR.
+CODE: XOR     ( w w -- w )   Bitwise exclusive OR.
+CODE: =       ( w w -- t )   Return true if top two are equal.
+CODE: <       ( n1 n2 -- t ) Signed compare of n1 and n2.
+CODE: >       ( n1 n2 -- t ) 
+    : <=      ( n1 n2 -- t )
+    : >=      ( n1 n2 -- t )
+    : <>      ( n1 n2 -- t )
+CODE: U<      ( u1 u2 -- t ) Unsigned comparision of u1 and u2
+CODE: U>      ( u1 u2 -- t ) 
+    : U>=     ( u1 u2 -- t )
+    : U<=     ( u1 u2 -- t )
+CODE: 0<      ( n -- t )   Return true if n is negative.
+CODE: 0=      ( n -- t )   Return true if n is zero.
+CODE: 0<>     ( n -- t )   Return true if n is not zero.
+CODE: 0>      ( n -- f )   Return true if n is positive.
+    : 0>=     ( n -- t )   Return true if n>=0
+    : 0<=     ( n -- t )   Return true if n<=0
+    : [...]   ( n l h -- t )  TRUE if l <= n <= h ( signed comparsion )
+    : [...)   ( n l h -- t )  TRUE if l <= n <  h ( signed comparsion )
+    : (...]   ( n l h -- t )  TRUE if l <  n <= h ( signed comparsion )
+    : (...)   ( n l h -- t )  TRUE if l <  n <  h ( signed comparsion )
+    : BETWEEN ( N LO HI -- T/F ) Same as [...]
+    : WITHIN  ( u ul uh -- t ) Unsigned comparsion, return TRUE if u is 
 	      within the range of ul and uh. ( ul <= u < uh )
 
 -------------------------
 þ Arithmetic Operations :
 -------------------------
 
-CODE: NEGATE    (( n -- -n ))     
+CODE: NEGATE    ( n -- -n )     
 		 Two's complement of tos.
-    : DNEGATE   (( d -- -d ))
+    : DNEGATE   ( d -- -d )
 		 Two's complement of a double integer.
-CODE: SGN    (( n -- -1/0/1 ))
+CODE: SGN    ( n -- -1/0/1 )
 	      Get the sign of n.
-    : ABS    (( n -- n ))      
+    : ABS    ( n -- n )      
 	      Return the absolute value of n.
-CODE: UM+    (( u u -- udsum ))  
+CODE: UM+    ( u u -- udsum )  
 	      Add two unsigned single numbers and return a double sum.
-CODE: UM*    (( u u -- ud )) 
+CODE: UM*    ( u u -- ud ) 
 	      Unsigned multiply. Return double product.
-CODE: UM/MOD (( udl udh un -- ur uq ))
+CODE: UM/MOD ( udl udh un -- ur uq )
 	      Unsigned divide of a double by a single. Return mod and quotient.
-CODE: +      (( n1 n2 -- n1+n2 )) 
+CODE: +      ( n1 n2 -- n1+n2 ) 
 	      Add top two items.
-CODE: -      (( n1 n2 -- n1-n2 )) 
+CODE: -      ( n1 n2 -- n1-n2 ) 
 	      Subtraction.
-CODE: *      (( n1 n2 -- n ))  
+CODE: *      ( n1 n2 -- n )  
 	      Return n1*n2.
-CODE: /      (( n1 n2 -- q ))  
+CODE: /      ( n1 n2 -- q )  
 	      Return only quotient of (n1/n2)
-CODE: MOD    (( n1 n2 -- r ))  
+CODE: MOD    ( n1 n2 -- r )  
 	      Return only remainder of (n1/n2)
-    : D+     (( d1 d2 -- d3 )) 
+    : D+     ( d1 d2 -- d3 ) 
 	      Add two double integers.
-    : M/MOD  (( d n -- r q ))  
+    : M/MOD  ( d n -- r q )  
 	      Floored division, divide a double precision number with a 
 	      single precision number.
-    : /MOD   (( n1 n2 -- r q )) 
+    : /MOD   ( n1 n2 -- r q ) 
 	      Return remandier/quotient of (n1/n2)
-    : M*     (( n1 n2 -- d ))   
+    : M*     ( n1 n2 -- d )   
 	      Return (n1*n2) with double precision.
-    : */MOD  (( n1 n2 n3 -- r q ))  
+    : */MOD  ( n1 n2 n3 -- r q )  
 	      r,q are remainder/quotient of (n1*n2/n3)
-    : */     (( n1 n2 n3 -- q )) 
+    : */     ( n1 n2 n3 -- q ) 
 	      Return only quotient of (n1*n2/n3)
-CODE: CELL+  (( a -- a+4 ))   
+CODE: CELL+  ( a -- a+4 )   
 	      Add cell size in byte to address.
-CODE: CELL-  (( a -- a-4 ))   
+CODE: CELL-  ( a -- a-4 )   
 	      Subtract cell size in byte from address.
-CODE: CELL*  (( n -- n*4 ))   
+CODE: CELL*  ( n -- n*4 )   
 	      Multiply tos by cell size in bytes.
-CODE: CELL/  (( n -- n/4 ))   
+CODE: CELL/  ( n -- n/4 )   
 	      Shift tos 2 bits rightward.
-CODE: 1+     (( n -- n+1 ))   
+CODE: 1+     ( n -- n+1 )   
 	      Increase TOS by 1 .
-CODE: 1-     (( n -- n-1 ))   
+CODE: 1-     ( n -- n-1 )   
 	      Decrease TOS by 1 .
-CODE: 2*     (( N -- n*2 ))   
+CODE: 2*     ( N -- n*2 )   
 	      Shift tos 1 bit leftward.
-CODE: U2/    (( N -- n/2 ))   ( Change sign if negative. )      
+CODE: U2/    ( N -- n/2 )   ( Change sign if negative. )      
 	      Shift tos 1 bit rightward logically. 
-CODE: 2/     (( N -- n/2 ))   ( Keep sign bit the same. )
+CODE: 2/     ( N -- n/2 )   ( Keep sign bit the same. )
 	      Shift tos 1 bit rightward arithmatically. 
-CODE: 256*   (( n -- n*256 )) 
+CODE: 256*   ( n -- n*256 ) 
 	      Shift TOS 8 bits leftward.
-CODE: U256/  (( u -- u/256 )) ( Change sign if negative. )      
+CODE: U256/  ( u -- u/256 ) ( Change sign if negative. )      
 	      Shift TOS 8 bits leftward logically.
-CODE: 256/   (( n -- n/256 )) ( keep sign bit the same. )
+CODE: 256/   ( n -- n/256 ) ( keep sign bit the same. )
 	      Shift TOS 8 bits leftward arithmatically.
-    : MAX    (( n1 n2 -- n )) 
+    : MAX    ( n1 n2 -- n ) 
 	      Return the greater one of n1 and n2.
-    : MIN    (( n1 n2 -- n )) 
+    : MIN    ( n1 n2 -- n ) 
 	      Return the smaller one of n1 and n2.
 
 ------------------------
 þ Basic Text I/O Words :
 ------------------------
 
-: CLS    (( -- ))  
+: CLS    ( -- )  
 	  Clear screen.
-: AT?    (( -- col_x row_y ))  
+: AT?    ( -- col_x row_y )  
 	  Return current cursor position.
-: AT     (( col_x row_y -- ))  
+: AT     ( col_x row_y -- )  
 	  Set current cursor position.
-: ?KEY   (( -- c T | F ))      
+: ?KEY   ( -- c T | F )      
 	  Return input character and true, or a false if no input.
-: KEY    (( -- c ))           
+: KEY    ( -- c )           
 	  Wait for and return an input character.
-: EMIT   (( c -- ))            
+: EMIT   ( c -- )            
 	  Send a character to the output device.
-: SPACE  (( -- ))             
+: SPACE  ( -- )             
 	  Emit a BL character.
-: BEEP   (( -- ))       
+: BEEP   ( -- )       
 	  Make a beep. ( Send an ASCII 7 )
-: CR     (( -- ))     
+: CR     ( -- )     
 	  Send a carrage return character.
-: EXPECT (( buf len -- )) 
+: EXPECT ( buf len -- ) 
 	  Accept input stream and store count in SPAN.
-: QUERY  (( -- )) 
+: QUERY  ( -- ) 
 	  Accept input stream to terminal input buffer.
-: SPACES (( +n -- )) 
+: SPACES ( +n -- ) 
 	  Emit 'n' BL characters.
-: NUF?   (( -- F ))             
+: NUF?   ( -- F )             
 	  Return TRUE and wait for next keystroke if any key pressed,
 	  otherwise return FALSE.
-: TAB    (( -- )) 
+: TAB    ( -- ) 
 	  Emit spaces and advance current cursor position to multiples of eight.
-: TYPE   (( buf count -- ))    
+: TYPE   ( buf count -- )    
 	  Display the content of 'buf' with 'count' characters.
-: .      (( n -- ))
+: .      ( n -- )
 	  Display a signed number at current cursor position.
-: U.     (( u -- ))
+: U.     ( u -- )
 	  Display an unsigned number at current cursor position.
-: .H     (( n -- ))
+: .H     ( n -- )
 	  Display a signed number in hexadecimal at current curosr position.
-: U.H    (( n -- ))
+: U.H    ( n -- )
 	  Display an unsigned number in hexadecimal at current cursor position.
-: .R     (( n +n -- ))
+: .R     ( n +n -- )
 	  Display a signed number 'n' with '+n' characters with right adjustment.
-: U.R    (( u +n -- ))
+: U.R    ( u +n -- )
 	  Similar to .R but with unsigned output.
-: U.0R   (( n +n -- ))
+: U.0R   ( n +n -- )
 	  Similar to U.R but with zeros leading.
-: .(     (( -- )) < Interpreting mode >
+: .(     ( -- ) < Interpreting mode >
 	  Display text string in interpreting mode, text string terminated with
 	  a character ')'.
-: ."     (( -- )) < Compiling mode >
+: ."     ( -- ) < Compiling mode >
 	  Compile text string into dictionary, display text string at run-time,
 	  The text string is terminated with a character '"'.
-: ?      (( addr -- )) @ . ;
+: ?      ( addr -- ) @ . ;
 	  Display the content of 'addr'.
 
 ----------------------------------------------
 þ String/Number Conversion, single precision :
 ----------------------------------------------
 
-: DECIMAL  (( -- ))
+: DECIMAL  ( -- )
 	   Set current convertion base to decimal. This is the default.
-: HEX      (( -- ))
+: HEX      ( -- )
 	   Set current convertion base to hexadecimal.
-: BINARY   (( -- ))
+: BINARY   ( -- )
 	   Set current convertion base to binary.
-: NUMBER?  (( adr -- d T / n T / adr F ))
+: NUMBER?  ( adr -- d T / n T / adr F )
 	   Convert a counted string 'adr' to number. 
-: str      (( w -- buf count )) 
+: str      ( w -- buf count ) 
 	   Convert a number to a string at 'buf' with length 'count' .
-: <#       (( -- )) 
+: <#       ( -- ) 
 	   Initiate the numeric output process.
-: HOLD     (( c -- )) 
+: HOLD     ( c -- ) 
 	   Insert a character into the numeric output string.
-: #        (( u -- u )) 
+: #        ( u -- u ) 
 	   Extract one digit from u and append the digit to output string.
-: #S       (( u -- 0 )) 
+: #S       ( u -- 0 ) 
 	   Convert u until all digits are added to the output string.
-: SIGN     (( n -- )) 0< IF ASCII - HOLD ENDIF ; 1 0 #PARMS
+: SIGN     ( n -- ) 0< IF ASCII - HOLD ENDIF ; 1 0 #PARMS
 	   Hold a sign character '-' if n < 0.
-: #>       (( w -- b u ))
+: #>       ( w -- b u )
 	   End convertion procedure, return a string with address at 'b' and
 	   length with 'u'.
-: DIGIT    (( u -- c )) 
+: DIGIT    ( u -- c ) 
 	   Convert digit u to a character.
 
 ---------------------
 þ String Operations :
 ---------------------
 
-    : COUNT  (( b -- b+1 +n )) Convert counted string to string and length.
+    : COUNT  ( b -- b+1 +n ) Convert counted string to string and length.
 	      Return count byte of a string and add 1 to byte address.
-    : $"     (( -- )TIB: <string> ) Runtime : (( -- addr ))
+    : $"     (( -- )TIB: <string> ) Runtime : ( -- addr )
 	      Compile an inline string literal. Return the address of 
 	      a counted string at 'addr', use COUNT to TYPE it.
-    : "      (( -- )TIB: <string> ) Runtime : (( -- string length ))
+    : "      (( -- )TIB: <string> ) Runtime : ( -- string length )
 	      Compile an inline string literal. Return string and length
 	      of this inline string literal at run-time.
-    : Z$"    (( -- )TIB: <string> )  Runtime : (( -- addr ))
+    : Z$"    (( -- )TIB: <string> )  Runtime : ( -- addr )
 	      Compile an counted ASCIIZ string. Return the address of
 	      a zero-ended counted string.
-    : $=     (( CSTR1 CSTR2 -- T/F ))
+
+    : $=     ( CSTR1 CSTR2 -- T/F )
 	      Compare two counted string, check whether they are the same.
-    : $+     (( target$ src len -- target$ )) Concat strings .
+    : $+     ( target$ src len -- target$ ) Concat strings .
 	      Concat source string into a counted-string
 	      Note that target$ buffer must be large enough
 		target$ : counted string
 		src : source string address ( not including the count byte )
 		len : the length to concat
-CODE: COMP   (( S D len -- flag )) 
+CODE: COMP   ( S D len -- flag ) 
 	      Compare two string with len bytes, 
 	      flag<0 if S<D,  flag=0 if S=D,  flag>0 if S>D, you can use
 	      'SGN' to convert them into -1/0/1.
-    : -TRAILING  (( b u -- b u ))
+    : -TRAILING  ( b u -- b u )
 	      Adjust the count to eliminate trailing white space.
 
-    : PACK$  (( b u a -- a ))
+    : PACK$  ( b u a -- a )
 	      Build a counted string with 'u' characters from 'b' at 'a'. 
 	      Null fill. Also put a trailing zero to build an ASCIIZ sting.
 
@@ -648,43 +647,43 @@ CODE: COMP   (( S D len -- flag ))
 þ Define Named Data Objects / Memory Allocation :
 -------------------------------------------------
 
-: ALLOT     (( n -- ))  
+: ALLOT     ( n -- )  
 	     Allocate n bytes to the code dictionary.
-: CREATE    (( -- )TIB: <name> )
+: CREATE    ( -- )TIB: <name> )
 	     Create a buffer and named it as <name>.
 	     Ex : create a 4K buffer and named it as Buffer
 	       CREATE Buffer  4096 ALLOT
-: "CREATE   (( string length -- ))
+: "CREATE   ( string length -- )
 	     Create a buffer with name specified with 'string' and 'length'.
 	     Ex : create a 4K buffer and named it as Buffer
 	       : CreateBuf   " Buffer"  "CREATE 4096 ALLOT   ;
-: VARIABLE  (( -- )TIB: <name> )
+: VARIABLE  ( -- )TIB: <name> )
 	     Compile a new variable initialized to 0. And named it as '<name>'
-: CONSTANT  (( n -- )TIB: <name> )
+: CONSTANT  ( n -- )TIB: <name> )
 	     Create a constant with name '<name>'.
-: 2VARIABLE (( -- )TIB: <name> )
+: 2VARIABLE ( -- )TIB: <name> )
 	     Compile a new double-precision variable initialized to 0. 
 	     And named it as '<name>'
-: ARRAY:    (( cell_size #cells -- )TIB: <name> -- )
+: ARRAY:    ( cell_size #cells -- )TIB: <name> -- )
 	     Create an array with '#cells' items, each item takes 'cell_size'
 	     bytes. This array is initialized by zeros.
 	     Ex : create a 50 entry string buffer, each string has 10 bytes.
 	       10 50 ARRAY:  []StringBuf
 	       : InitStrBuf 
 		    50 0 DO   #I []StringBuf  " abcdefg" $+ DROP    LOOP ;
-: DOES>     (( -- )) Runtime : (( ... pfa -- ... ))
+: DOES>     ( -- ) Runtime : ( ... pfa -- ... )
 	     Define the run-time behavior of the CREATEd name.
 
 --------------------------------
 þ FORTH VCPU Code Flow Control :
 --------------------------------
 
-CODE: EXECUTE   (( ca -- )) 
+CODE: EXECUTE   ( ca -- ) 
 	Execute the word at ca.
-CODE: @EXECUTE  (( a -- )) 
+CODE: @EXECUTE  ( a -- ) 
 	Execute vector stored in address a.
-CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#  
-		     -- EBP EDI ESI EDX ECX EBX EAX flag  ))
+CODE: trap      (      EBP EDI ESI EDX ECX EBX EAX int#  
+		     -- EBP EDI ESI EDX ECX EBX EAX flag  )
 	System call, a standard interface for software interrupts.
 	However, this word is CPU dependent .
 
@@ -697,33 +696,33 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
 
  * The following words are all immediate words .
 
-: IF      (( )runtime : T/F -- ) 
+: IF      ( )runtime : T/F -- ) 
 	   Begin a conditional branch structure.
-: ELSE    (( )runtime : -- )
+: ELSE    ( )runtime : -- )
 	   Start the false clause in an IF-ELSE-ENDIF structure.
-: ENDIF   (( )runtime : -- )
+: ENDIF   ( )runtime : -- )
 	   Terminate a conditional branch structure.
 
-: FOR     (( )runtime : n -- )
+: FOR     ( )runtime : n -- )
 	   Start a FOR-NEXT loop structure in a colon definition.
-: NEXT    (( )runtime : -- )
+: NEXT    ( )runtime : -- )
 	   Terminate a FOR-NEXT loop structure.
-: AFT     (( )runtime : -- )
+: AFT     ( )runtime : -- )
 	   Jump to THEN in a FOR-AFT-THEN-NEXT loop the first time through.
-: THEN    (( )runtime : -- )
+: THEN    ( )runtime : -- )
 	   Terminate a conditional branch structure, in fact, it is an
 	   alias name of ENDIF, but when used in stack expression, they
 	   are definite different.
 
-: BEGIN   (( )runtime : -- )
+: BEGIN   ( )runtime : -- )
 	   Start an infinite or indefinite loop structure.
-: WHILE   (( )runtime : T/F -- )
+: WHILE   ( )runtime : T/F -- )
 	   Conditional branch out of a BEGIN-WHILE-REPEAT loop.
-: REPEAT  (( )runtime : -- )
+: REPEAT  ( )runtime : -- )
 	   Terminate a BEGIN-WHILE-REPEAT indefinite loop.
-: UNTIL   (( )runtime : T/F -- )
+: UNTIL   ( )runtime : T/F -- )
 	   Terminate a BEGIN-UNTIL indefinite loop structure.
-: AGAIN   (( )runtime : -- )
+: AGAIN   ( )runtime : -- )
 	   Terminate a BEGIN-AGAIN infinite loop structure.
 
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -735,13 +734,13 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
      ENDCASE
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-: CASE    (( )Runtime : n -- )
+: CASE    ( )Runtime : n -- )
 	   Begin CASE ... OF ... ENDOF ... ENDCASE control structure
-: OF      (( )Runtime : n -- )
+: OF      ( )Runtime : n -- )
 	   Begin a OF ... ENDOF statement .     
-: ENDOF   (( ))
+: ENDOF   ( )
 	   Terminate a OF ... ENDOF statement.  
-: ENDCASE (( ))
+: ENDCASE ( )
 	   Terminate a CASE ... ENDCASE statement.
 
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
@@ -767,19 +766,19 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
 	   THEN-AND
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-: ANDTHEN  (( runtime : T/F -- ))
+: ANDTHEN  ( runtime : T/F -- )
 	A shortcut point in ANDTHEN ... ANDTHEN ... THEN-AND structure,
 	branch to THEN-AND when T/F is FALSE .
 
-: THEN-AND (( runtime : -- T/F ))
+: THEN-AND ( runtime : -- T/F )
 	The terminate point in ANDTHEN ... THEN-AND structure.
 	Return the result of the shortcut boolean evaluation.
 
-: ORELSE   (( runtime : T/F -- ))
+: ORELSE   ( runtime : T/F -- )
 	A shortcut point in ORELSE ... ORELSE ... ELSE-OR structure,
 	branch to ELSE-OR when T/F is TRUE .
 
-: ELSE-OR  (( runtime : -- T/F ))
+: ELSE-OR  ( runtime : -- T/F )
 	The terminate point in ORELSE ... ELSE-OR structure.
 	Return the result of the shortcut boolean evaluation.
 
@@ -787,27 +786,27 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
  * DO ... LOOP structure :
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 
-: #I      (( -- current_loop_index )) 
+: #I      ( -- current_loop_index ) 
 	   Loop index value for either FOR ... NEXT or DO ... LOOP .
-: #J      (( -- inner_loop_index ))
+: #J      ( -- inner_loop_index )
 	   Outer loop index for nesting DO ... LOOP structure .
-: #K      (( -- third_loop_index ))
+: #K      ( -- third_loop_index )
 	   Third outer loop index for nesting DO ... LOOP structure .
-: DO      (( runtime : limit start -- ))
+: DO      ( runtime : limit start -- )
 	   Begin of DO ... (+)LOOP structure.
-: ?DO     (( runtime : limit start -- ))
+: ?DO     ( runtime : limit start -- )
 	   Begin of ?DO ... (+)LOOP structure.
 	   Skip this loop if 'start' = 'limit' .
-: LOOP    (( runtime : -- ))
+: LOOP    ( runtime : -- )
 	   Loop back .
-: +LOOP   (( runtime : inc -- ))
+: +LOOP   ( runtime : inc -- )
 	   Add loop index by 'inc' and check for loop back.
-: LEAVE   (( runtime : -- ))
+: LEAVE   ( runtime : -- )
 	   Leave current loop immediately.
-: ?LEAVE  (( runtime : T/F -- ))
+: ?LEAVE  ( runtime : T/F -- )
 	   If T/F flag is true, leave current loop.
 
-: #REPEATS: (( n -- ))  < my creation >
+: #REPEATS: ( n -- )  < my creation >
 	  Execute the codes between '#REPEATS:' and ';' for 'n' times.
 	  Ex1: 
 	      : TEST  10 #REPEATS: 1 2 + . ;  <enter>
@@ -868,38 +867,38 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
       SEEK_CUR = 1 : relative to current file pointer.
       SEEK_END = 2 : relative to end of file.
 
-    : HCLOSE    (( handle -- T/F ))
+    : HCLOSE    ( handle -- T/F )
 	Close a file, flush file buffer.
-    : HREAD     (( buffer bytes handle -- bytes-read T / err-code F ))
+    : HREAD     ( buffer bytes handle -- bytes-read T / err-code F )
 	Read file at current file pointer, read 'bytes' into 'buffer'.
-    : HWRITE    (( buffer bytes handle -- bytes-written T / err-code F ))
+    : HWRITE    ( buffer bytes handle -- bytes-written T / err-code F )
 	Write a file at current file pointer, write 'bytes' of the 
 	contents of 'buffer' .
-    : HSEEK     (( mode offset handle -- file_pointer T / err-code F ))
+    : HSEEK     ( mode offset handle -- file_pointer T / err-code F )
 	Move file pointer according to 'mode' and 'offset', offset can
 	be a positive value or negative value.
 	'mode' = SEEK_SET, SEEK_CUR or SEEK_END.
-    : OPEN      (( fname-str fname-len mode -- handle True / err-code False ))
+    : OPEN      ( fname-str fname-len mode -- handle True / err-code False )
 	Open a EXISTED file with "mode", with a FORTH string. It can be used
 	to detect whether a file is existed or not.
-    : FOPEN     (( fname-str fname-len mode -- handle True / err-code False ))
+    : FOPEN     ( fname-str fname-len mode -- handle True / err-code False )
 	If file already exists, open it with 'mode' ; otherwise create 
 	a new file .
-    : HERROR$       (( err-code -- str len ))
+    : HERROR$       ( err-code -- str len )
 	Convert MS-DOS error code to a message string, you could use TYPE
 	to display it.
 
  ** Generally, the following three words are not necessary. **
 
-    : HCREATE   (( fattr asciiz-adr -- handle True / err-code False ))
+    : HCREATE   ( fattr asciiz-adr -- handle True / err-code False )
 	MS-DOS function call $3C .
 	Create a file no matter this file has been existed or not.
 	fattr = 0 : normal , 1 : read-only, 2 : hidden, 4 : system .
-    : HOPEN     (( mode asciiz-adr -- handle True / err-code False ))
+    : HOPEN     ( mode asciiz-adr -- handle True / err-code False )
 	MS-DOS function call $3D .
 	Open a existing file with READ/ONLY , WRITE/ONLY or READ/WRITE mode.
 	But for file name, it MUST BE an ASCIIZ string.
-    : READLN (( buffer handle -- bytes-read T / err-code F )) 
+    : READLN ( buffer handle -- bytes-read T / err-code F ) 
 	 A very slow file reading routine, read one text line into 'buffer',
 	 one character at a time.
 
@@ -907,54 +906,54 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
 þ FORTH System Memory Access and Parsing :
 ------------------------------------------
 
-: HERE    (( -- addr )) 
+: HERE    ( -- addr ) 
 	   Return the top of the code dictionary.
-: PAD     (( -- addr ))
+: PAD     ( -- addr )
 	   Return the address of the text buffer above the code dictionary.
-: TIB     (( -- addr )) 
+: TIB     ( -- addr ) 
 	   Return the address of the current terminal input buffer.
-: WORD    (( c -- here )TIB: <string> )
+: WORD    ( c -- here )TIB: <string> )
 	   Parse a word from input stream and copy it to code dictionary.
 	   ( put it HERE .)
-: TOKEN   (( -- addr )TIB : <string> )
+: TOKEN   ( -- addr )TIB : <string> )
 	   Parse a word from input stream and copy it to name dictionary.
-: "TOKEN  (( b u -- addr ))
+: "TOKEN  ( b u -- addr )
 	   Copy a string into name dictionary.
-: //      (( -- ))
+: //      ( -- )
 	   Treate the following as comment, till end of line.
-: ((      (( -- ))
+: (      ( -- )
 	   Comments all things inside two right paren ')' .
-: ASCII   (( compile time : -- )TIB: char )
-	  (( runtime : -- c ))  Where c is the 'char' in compile time.
+: ASCII   ( compile time : -- )TIB: char )
+	  ( runtime : -- c )  Where c is the 'char' in compile time.
 
 ------------------
 þ Error Handling :
 ------------------
 
-: ABORT   (( -- ))
+: ABORT   ( -- )
 	   Reset data stack and jump to QUIT.
-: ABORT"  (( Runtime : T/F -- )TIB: <string>" )
+: ABORT"  ( Runtime : T/F -- )TIB: <string>" )
 	   Conditional abort with an error message. Abort if T/F flag is
 	   TRUE .
-: CATCH   (( ca -- 0 | err# ))
+: CATCH   ( ca -- 0 | err# )
 	   Execute word at ca and set up an error frame for it.
-: THROW   (( err# -- )CATCH: -- err# )
+: THROW   ( err# -- )CATCH: -- err# )
 	   Reset system to current local error frame an update error flag.
 
 -------------------------------
 þ Standard Graphics Interface :
 -------------------------------
 
-: GRAPHICS-MODE (( -- ))
+: GRAPHICS-MODE ( -- )
 	Enter graphics mode, according to current value of 'GDefaultMode'.
 	It's default value is G640x480x16
 	Ex. G1024x768x256 to GDefaultMode
 	    GRAPHICS-MODE
-: TEXT-MODE     (( -- ))
+: TEXT-MODE     ( -- )
 	Return to text mode if in graphics mode.
-: VIDEO-MODE	(( -- ))
+: VIDEO-MODE	( -- )
 	Execute GRAPHICS-MODE or TEXT-MODE according to GDefaultMode .
-: GCurrentMode  (( -- m ))
+: GCurrentMode  ( -- m )
 	Get current mode, 0 = text-mode, otherwise GWidthxHeightxColor
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  * User Controlled Values, these values must be setup before GRAPHICS-MODE
@@ -993,12 +992,12 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
      G_NOT_PUT  ( optional )
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  * Basic Graphics Words :
-: GraphicsMode?   (( -- T/F ))
+: GraphicsMode?   ( -- T/F )
 		   Is it in graphics mode now ?
  -- There are two set of drawing words, one is color parameterred . --
-: GDrawCPoint     (( x y color -- ))
+: GDrawCPoint     ( x y color -- )
 		   Draw a colorred point at screen coordinate (x,y).
-: GDrawCLine      (( x0 y0 x1 y1 color -- ))
+: GDrawCLine      ( x0 y0 x1 y1 color -- )
 		   Draw a colorred line from (x0,y0) to (x1,y1)
 
  -- There are at most two coordinate pairs in rectangle drawing/filling --
@@ -1010,134 +1009,134 @@ CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#
  --                      ภฤฤฤฤฤฤฤฤฤฤฤฤฤู                                --
  --                                 (x1,y1)                             --
 
-: GDrawCRectangle (( x0 y0 x1 y1 color -- ))
+: GDrawCRectangle ( x0 y0 x1 y1 color -- )
 		   Draw a colorred rectangle with upper-left point at (x0,y0)
 		   and lower-right point at (x1,y1) .
-: GFillCRectangle (( x0 y0 x1 y1 color -- ))
+: GFillCRectangle ( x0 y0 x1 y1 color -- )
 		   Same as GDrawCRectangle but filled with 'color' inside.
 		   ( not patternned filling. )
-: GSetColor       (( color -- ))
+: GSetColor       ( color -- )
 		   Set current drawing color.
-: GGetColor       (( -- color ))
+: GGetColor       ( -- color )
 		   Get current color setting.
-: GDrawPoint      (( x y -- ))
+: GDrawPoint      ( x y -- )
 		   Draw a point at (x,y) with current color .   
-: GDrawLine       (( x0 y0 x1 y1 -- ))
+: GDrawLine       ( x0 y0 x1 y1 -- )
 		   Draw a line from (x0,y0) to (x1,y1) with current color.
-: GDrawRectangle  (( x0 y0 x1 y1 -- ))
+: GDrawRectangle  ( x0 y0 x1 y1 -- )
 		   Draw a rectangle with upper-left point at (x0,y0) and
 		   lower-right point at (x1,y1) .
-: GFillRectangle  (( x0 y0 x1 y1 -- ))
+: GFillRectangle  ( x0 y0 x1 y1 -- )
 		   Same as GDrawRectangle but filled with current color.
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  * Image operation words :
-: GImageSize      (( x0 y0 x1 y1 -- n ))
+: GImageSize      ( x0 y0 x1 y1 -- n )
 		   Image buffer size with rectangle (x0,y0) and (x1,y1)
-: GGetImage       (( left top right bottom *image -- ))
+: GGetImage       ( left top right bottom *image -- )
 		   Get image into buffer '*image'.
-: GPutImage       (( left top *image operation -- ))
+: GPutImage       ( left top *image operation -- )
 		   Put '*image' at (left,top) with 'operation' ,
 		   operation = G_COPY_PUT, G_XOR_PUT, G_AND_PUT, G_OR_PUT,
 			       or G_NOT_PUT .
-: GMoveImage      (( destX destY srcX0 srcY0 srcX1 srcY1 -- ))
+: GMoveImage      ( destX destY srcX0 srcY0 srcX1 srcY1 -- )
 		   Move a image with rectangle (srcX0,srcY0)-(srcX1,srcY1)
 		   to (destX,destY) .
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  * Read Graphics Region/size
-: GSizeX          (( -- SizeX ))
+: GSizeX          ( -- SizeX )
 		   Screen width of current graphics resolution, should be 
 		   consistent with GDefaultMode .
-: GSizeY          (( -- SizeY ))
+: GSizeY          ( -- SizeY )
 		   Screen height of current graphics resolution, should be 
 		   consistent with GDefaultMode .
-: GMaxX           (( -- MaxX ))
+: GMaxX           ( -- MaxX )
 		   Maximum value of X-coordinate . Should be GSizeX-1.
-: GMaxY           (( -- MaxY ))
+: GMaxY           ( -- MaxY )
 		   Maximum value of Y-coordinate . Should be GSizeY-1.
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
 VARIABLE GScrolling   A variable for storing a flag, control whether
 		      text scrolling or not. Not always work in all systems.
-DEFER GDrawASCII  (( char -- ))
+DEFER GDrawASCII  ( char -- )
 		   Draw an ASCII character at current cursor position,
 		   a deferred word which could be defined by user.
-: GOutChar        (( x0 y0 char -- ))
+: GOutChar        ( x0 y0 char -- )
 		   Draw a character 'char' at (x0,y0), used by GDrawASCII
 		   GUseDefaultFont? is FALSE.
  * Text colors : there are duplicates, just for your convience.
-: GGetForeColor   (( -- fgcolor ))
+: GGetForeColor   ( -- fgcolor )
 		   Get current foreground color of text setting .
-: GGetBackColor   (( -- bgcolor ))
+: GGetBackColor   ( -- bgcolor )
 		   Get current foreground color of text setting .
-: GGetTextColor   (( -- fgcolor bgcolor ))
+: GGetTextColor   ( -- fgcolor bgcolor )
 		   Get current color setting for both foreground and background
 		   colors.
-: GSetForeColor   (( fgcolor -- ))
+: GSetForeColor   ( fgcolor -- )
 		   Set foreground color of text.
-: GSetBackColor   (( bgcolor -- ))
+: GSetBackColor   ( bgcolor -- )
 		   Set background color of text.
-: GSetTextColor   (( fgcolor bgcolor -- ))
+: GSetTextColor   ( fgcolor bgcolor -- )
 		   Set colors for both foreground and background.
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
  * Text range : You can display text in one region and graph in anohter
 		region, the following two words help you do this.
-: GGetScrollRange (( -- X0 Y0 X1 Y1 #col #row ))
+: GGetScrollRange ( -- X0 Y0 X1 Y1 #col #row )
 		   Get current setting of text scrolling window range :
 		   (x0,y0)-(x1,y1) in '#col' columns and '#row' rows.
-: GSetScrollRange (( X0 Y0 X1 Y1 #col #row -- ))
+: GSetScrollRange ( X0 Y0 X1 Y1 #col #row -- )
 		   Change current setting of text scrolling window.
 
 STRUCT: GTextInfo:   A data structure for GSaveTextInfo or GRestoreTextInfo
 
-: GSaveTextInfo     (( GTextInfo^ -- ))
+: GSaveTextInfo     ( GTextInfo^ -- )
 		     Save current text settings like cursor shape,scroll range
 		     foreground/background colors...
-: GRestoreTextInfo  (( GTextInfo^ -- ))
+: GRestoreTextInfo  ( GTextInfo^ -- )
 		     Restore text settings info stored in 'GTextInfo^' which
 		     is previously setup by GSaveTextInfo.
 
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-: G_HideCursor    (( -- ))
+: G_HideCursor    ( -- )
 		   Hide cursor temporary, it still blinks next time, this
 		   word is widely used internally. Since the cursor is 
 		   emulated by image, it should be sometimes hidden.
-: G_NormCursor    (( -- ))
+: G_NormCursor    ( -- )
 		   Set cursor shape to normal size.
-: G_BigCursor     (( -- ))
+: G_BigCursor     ( -- )
 		   Set cursor shape to biggest size.
-: G_HalfCursor    (( -- ))
+: G_HalfCursor    ( -- )
 		   Set cursor shape to a half of biggest one.
-: GCursorOFF      (( -- ))
+: GCursorOFF      ( -- )
 		   Turn off cursor emulation.
-: GCursorON       (( -- ))
+: GCursorON       ( -- )
 		   Turn on cursor emulation.
-: GCursorState    (( -- T/F ))
+: GCursorState    ( -- T/F )
 		   Return TRUE if cursor emulation is ON.
-: GCursor>Coord   (( col_x row_y -- x y ))
+: GCursor>Coord   ( col_x row_y -- x y )
 		   Convert (column,row) position to screen coordinates.
-: GCursor++       (( -- ))
+: GCursor++       ( -- )
 		   Increment cursor position by one. If 'GScrolling' is ON,
 		   this will cause text scrolling if cursor is currently
 		   at right-bottom corner.
-: GCursor+!       (( n -- ))
+: GCursor+!       ( n -- )
 		   Increment cursor position by 'n', either positive or 
 		   negative value.
-: GCursor--       (( -- ))
+: GCursor--       ( -- )
 		   Decrement cursor position by one.
-: GCursor-!       (( n -- ))
+: GCursor-!       ( n -- )
 		   Similar to GCursor+! but it use substraction operation.
-: GCursor@        (( -- loc ))
+: GCursor@        ( -- loc )
 		   Get current cursor position .
-: GCursor!        (( n -- ))
+: GCursor!        ( n -- )
 		   Set current cursor position . Ex.  0  GCursor! .
-: GWouldScroll?   (( +value -- T/F ))
+: GWouldScroll?   ( +value -- T/F )
 		   Test whether cursor increment by +value (must be positive)
 		   would cause text scrolling or not. Used internally.
 
  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
-: GInitialize     (( video_mode #columns #rows -- ))
+: GInitialize     ( video_mode #columns #rows -- )
 		   Called by GRAPHICS-MODE, user shouldn't use it unless
 		   you want to modify GRAPHIS.4TH .
-: GUninitialize   (( -- ))
+: GUninitialize   ( -- )
 		   Called by TEXT-MODE, user shouldn't use this either.
 
 ----------------------------------
@@ -1271,7 +1270,7 @@ STRUCT: GTextInfo:   A data structure for GSaveTextInfo or GRestoreTextInfo
    codes with MASM syntax output, use the word MASM-LOOK .
 
    Refer to VERIFY.4TH for a complete instruction reference . Here are
-   some examples : ( after you FLOADed INFIX.4TH , you could use infix. )
+   some examples :
 
    ีอออออออออออออออออออออออออออออออออออัอออออออออออออออออออออออออออออออออออธ
    ณ         CF Assembly               ณ              MASM                 ณ
@@ -1314,7 +1313,6 @@ STRUCT: GTextInfo:   A data structure for GSaveTextInfo or GRestoreTextInfo
    ณ  MOV    WORD^ { EAX }  BX         ณ   MOV   WORD PTR [EAX], BX        ณ
    ณ  MOV    BYTE^ { EBX }  AL         ณ   MOV   BYTE PTR [EBX], AL        ณ
    ณ  MOV    { EBP EDI + }  ECX        ณ   MOV   [EBP+EDI], ECX            ณ
-   ณ  MOV    { ( EBP + EDI ) }  ECX    ณ   MOV   [EBP+EDI], ECX            ณ
    รฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤลฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤด
    ณ  MOV    { VARIABLE-NAME }  ECX    ณ   MOV   VARIABLE-NAME, ECX        ณ
    ณ                                   ณ   MOV   [VARIABLE-NAME], ECX      ณ
@@ -1613,4 +1611,3 @@ STRUCT: GTextInfo:   A data structure for GSaveTextInfo or GRestoreTextInfo
 						( To be continue ... )
 						~~~~~~~~~~~~~~~~~~~~~~
 
-

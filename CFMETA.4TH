@@ -33,11 +33,11 @@ VARIABLE CPU
 : .386? \ CPU? 386 = ; IMMEDIATE
 : .486? \ CPU? 486 = ; IMMEDIATE
 
-.486    // for 386 machines, modify this to .386
+.386    // for 386 machines, modify this to .386
 
 CR CR 
 .( ********************************************* ) CR
-.( ** Currently selecting .486 as target code ** ) CR
+.( ** Currently selecting .386 as target code ** ) CR
 .( ********************************************* ) CR
 
 VARIABLE AUTOMETA
@@ -206,4 +206,3 @@ CR CR .( ****   Common Forth Meta-compiler loaded   ****)
 CR .( AUTOMETA is currently ON, turn it off for manual meta-compilation. )
 CR .( Type "META" for meta-compiling. ) CR CR
 
-

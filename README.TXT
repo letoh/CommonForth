@@ -1,6 +1,6 @@
-ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
-º     Common  Forth  Experiment  Version  1.665  Release  Notes  :        º
-ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º     Common  Forth  Experiment  Version  1.668  Release  Notes  :      º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
 
 ÄÄÄÄÄÄÄÄÄÄ
  Warranty 
@@ -8,27 +8,31 @@
 
        This software is distributed WITHOUT ANY WARRANTY.
 
-       I have prevent using any low-level operations like BIOS disk I/O or 
-    any other dangerous functions since my major goal is to build a
-    common environment which can use sources outside FORTH world and treat 
-    them like FORTH (Abstract Common Forth ), so I/O performance is not my 
-    first consideration.
+       I prevented using any low-level operations like BIOS disk I/O,
+    since my major goal is to build a common environment which can use 
+    other sources outside FORTH world and treat them like FORTH 
+    ( Abstract Common Forth ), so I/O performance is not my first 
+    consideration.
 
-       Common Forth is implemented as macro-expansion subroutine threaded 
+       Common Forth is implemented as macro-expansion subroutine threaded
     which means the compiled code is fast enough. Besides, many optimizations
     will be done in the future. Therefore, whenever you can prevent CODE 
-    words, don't use them.
+    words, don't use them, for portabiliby's sake.
     
-       And I haven't met any serious problem yet. However it does not mean 
-    that it won't cause any damage to your system. However the whole 
-    system goes in protected mode, many illegal operations should abort the
-    whole system. So I believe your normal programming and operation won't
-    cause any problem. But be careful not to enter any infinite loop in your
-    program, it is not always possible to CTRL-BREAK those operations.
+       And I haven't met any serious problem yet. Several successful projects
+    have been implemented with this system, with the supporting of C(++)
+    libraries ( such as database library : CodeBase ). The whole system goes
+    in protected mode, many illegal operations should abort the whole system.
+    However that's depended on the underlying DOS-extender. So I believe 
+    your normal programming and operation won't cause any problem. But be 
+    careful not to enter any infinite loop in your program, it is not always 
+    possible to CTRL-BREAK those operations. For all those low-level I/O
+    operations, that's depended on the underlying DOS extender, which might
+    again based on VCPI or DPMI.
 
     ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
-      You must realize that this is an EXPERIMENT system and contains many
-      prototypes .
+      You must realize that this is an experiment system and contains many
+      prototypes . So far, they works fine.
     ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
 
 ÄÄÄÄÄÄÄÄÄÄÄ
@@ -55,13 +59,12 @@
     example, if you include the assembler/disassembler code in your turnkey
     system, and 'run through' the assembler/disassembler for assembling/
     disassembling, the outputs itself is not chargable. If your turnkey
-    system implements only user-interface for DIRECT MANIPULATION of those
-    tools, it cannot be charged. Take another example, you cannot just
-    write the file read/write interface of LL(k)Gen and sell an LL(k)Gen
-    turnkey system. The term 'run through' applies to all tools except for
-    the kernel codes in CF0.4TH . However the term 'run through' itself is 
-    quite ambiguous, don't worry, just USE YOUR CONSCIENCE and you will 
-    know what to do. Just don't charge fee for codes not belongs to yourself.
+    system provides only user-interface for DIRECT MANIPULATION of those
+    tools, it cannot be charged. The term 'run through' applies to all tools
+    except for the kernel codes in CF0.4TH . However the term 'run through'
+    itself is quite ambiguous, don't worry, just USE YOUR CONSCIENCE and
+    you will know what to do. Just don't charge fee for codes not belongs
+    to yourself.
 
   ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
   º þ ABSOLUTELY FORBID to use in ANY military purpose except for Taiwan's º
@@ -79,8 +82,8 @@
 
        The best way is that you can sell your product ( not include any
     portion of this system ) and declare that they need this system for
-    execution environment ( tell them the version too. ). And tell them 
-    how to obtain this system. Just like you release MS-DOS executable 
+    execution environment ( tell them the version too. ). And tell them
+    how to obtain this system. Just like you release MS-DOS executable
     applications without releasing the copyrighted MS-DOS itself.
 
 ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
@@ -89,11 +92,10 @@
 
       There is no guarantee that your application written in this system
     would be compatible with next released Common Forth. This system changes
-    RAPIDLY ! Changes are made almost every day ! Of course you might think
-    this system useless since it change so fast. However, you should remember
-    that this is an EXPERIMENT version . This system will be settled down and
-    be compatible with ANSI standard after version 2.0 . Before v2.0, I won't
-    follow any standard except mine.
+    RAPIDLY ! Of course you might think this system useless since it change
+    so fast. However, you should remember that this is an experiment version.
+    This system will be settled down and be compatible with ANSI standard
+    after version 2.0 . Before v2.0, I won't follow any standard except mine.
 
 o eForth version :
 
@@ -132,20 +134,23 @@ What are the differences between CF and other Forth systems ?
        since it does not use extra codes to access local variables
        and input/output parameters, and it never move these data into
        return stack, they are just move to top of data stack (TOS) when they
-       are needed and move TOS into the cell where they are assigned.
-       It is a prototype version. New algorithm will be applied in new
-       version which will compile SWAP, DUP ... directly.
+       are needed ( just like PICK ) and move TOS into the cell where they
+       are assigned. It is a prototype version. New algorithm will be 
+       applied in new version which will compile SWAP, DUP ... directly.
+
 	 See HI.4TH, STKEXPR.4TH for stack parameter and local variable
 	 examples .
 
     2. Subroutine threaded with macro expansion :
 	  Fastest Forth system implementation method. In the future, many
        other optimizations will be implemented.
+
 	  Use SEE.4TH or DISASM.4TH to see the compiled code.
 
     3. Short-cut Boolean evaluation available : ( Common Forth Unique )
 	T/F ANDTHEN T/F ANDTHEN .... THEN-AND
 	T/F ORELSE  T/F ORELSE  .... ELSE-OR
+
 	  See SHORTCUT.4TH for usage and examples.
 
     4. FORTH call C(++) and C(++) call FORTH :
@@ -157,30 +162,38 @@ What are the differences between CF and other Forth systems ?
        for 'forth_interpret(...)' function. About C(++) actually 'CALL' 
        FORTH words, not just interpreting every time, this facility will be
        implemented later.
+
 	  See DEMO_C.4TH for examples of FORTH calls C .
 
     5. Data structure oriented implementation :
 	Most of the data structures are defined by STRUCT: ... ;STRUCT ,
 	UNION: ... ;UNION , including the memory map and head structure
 	which makes it easier to understand this system.
+
 	  See STRUCT.4TH and MEMMAP.4TH and CPU80486.4TH for examples.
 	  For unions, see GRX.4TH for examples.
 
-    6. A very syntax-clear 80486 assembler and disassembler (CPU80486.4TH), 
+    6. A very syntax-clear 80486 assembler and disassembler (CPU80486.4TH),
        both PREFIX and POSTFIX syntax are provided and has exactly
        the same syntax except for that the memonic can be put before operands
        or after them.
+
 	  SEE VERIFY.4TH and VERIFYPO.4TH for prefix / postfix examples .
 
     7. A very fast multitasking system with different mechanism and minimum
-	overhead ( for 486s each PAUSE takes 15 clock cycles when cache hit
-	and 17-19 clock cycles on cache miss . ). ( MULTASK.4TH )
+       overhead ( much much faster than a single INT instruction in protected
+       mode ! ).
+
+          ( MULTASK.4TH )
 
     8. A very simple meta-compilation mechanism without H: T: ...
        In fact, except for user variables, the meta-compiler implements
-       almost no-thing for supporting meta-compilation. ( CFMETA.4TH )
+       almost no-thing for supporting meta-compilation. 
+
+          ( CFMETA.4TH )
 
     9. Support one CREATE with multiple DOES> .
+
 	  See the definition of FIELD: in STRUCT.4TH, and ARRAY: in HI.4TH.
 
    10. A powerful discompiler ( SEE.4TH ), multiple exit loops like :
@@ -192,35 +205,33 @@ What are the differences between CF and other Forth systems ?
 		THEN ...
 	     ELSE ...
 	     THEN ...
+
        could always be discompiled successfully.
 
    11. Compatible with Chinese system ( such as ETen, 01 ... ).
        That's why it is case-sensitive.
 
    12. Assertion tools for your debugging version program.
+
 	  See #IF.4TH and ASSERT.4TH .
 
    13. No floating point stack, all floating goes to data stack. I believe
        2 stack is enough for one FORTH task. Besides, multitasking won't cause
-       any problem in this way. There can be many tasks computing floating
-       on stack at the same time. There is only one format : 64-bit IEEE
-       floating point. Each floating number occupies 2 cells, just like double
-       precision integer. Many floating operations goes through INVOKEC.4TH
-       with C(++) function calls, but 387FLOAT.4TH use 387 instructions.
-	  See FLOAT.4TH and 387FLOAT.4TH .
+       any problem in this way since there could be many tasks computing
+       floating on stack at the same time. There is only one format : 
+       64-bit IEEE floating point. Each floating number occupies 2 cells,
+       just like double precision integer. Many floating operations goes 
+       through INVOKEC.4TH with C(++) function calls, but 387FLOAT.4TH 
+       use 387 instructions.
+
+	  See FLOAT.4TH and 387FLOAT.4TH . And the demo program 3DR.4TH.
 
    14. Pure graphics mode operation. Cursor is emulated by multitasking with
        a CursorTask. A standard graphics interface have been defined which
        means that you can write portable programs which could be executed
        under other Common Forth environments ( like Watcom's loader . ) For
        example, a demonstration program 3DRp.4TH by Sam Chen is now running
-       under both GO32+DJGPP, RUN386+WATCOM and PMODE/W+WATCOM .
-
-   15. Infix expression provided ( INFIX.4TH ), ( Common Forth Unique )
-       including a LL(k) grammar compiler ( LL(k)GEN.4TH ) ( Unique ),
-       like YACC. To know how to use it, you must understand compilers
-       first, but you don't need to know this while using infix syntax.
-	   See DEMO_IFX.4TH for some examples.
+       under GO32+DJGPP(V1), RUN386+WATCOM and PMODE/W+WATCOM.
 
 ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
  Running this System
@@ -272,9 +283,8 @@ What are the differences between CF and other Forth systems ?
 ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
 
       An user manual is now included in this version named MANUAL.DOC, and 
-   I must appologize that my English might not be good enough to express 
-   what I want to express. However it should be of some use. This file is
-   still under construction.
+   I must appologize that my English might not be good enough. However it 
+   should be of some use. This file is still under construction.
 
       There are a few parts of that manual, including basic operations,
    word summary, turnkey systems, meta-compilation, assembly programming
@@ -557,7 +567,7 @@ What are the differences between CF and other Forth systems ?
 		  only ) :
 
 			ALSO ASSEMBLER ALSO FORTH DEFINITIONS
-			: T   EAX ;   : SP ESI ;
+			: T   EAX ;   : SP EBP ;
 			: $PUSHT
 				SP     { SP 4 - }   LEA
 			      { SP }     T          MOV  ;
@@ -565,7 +575,8 @@ What are the differences between CF and other Forth systems ?
 			CODE: TEST    ( -- 5 )
 				$PUSHT
 				T       5 #     MOV
-				RET     ;CODE
+				RET     
+                                ;CODE
 
 	       3. Since this system is a macro expansion subroutine threaded
 		  Forth system, the execution speed is much faster than
@@ -645,74 +656,7 @@ What are the differences between CF and other Forth systems ?
 		 Use 'TEXT-MODE' to return text mode. Please reference to
 		 MANUAL.DOC .
 
-  LL(k)GEN.4TH : A LL(k) grammar compiler which allows you to define
-		 grammars for your application language. This program is
-		 very similar to YACC but not so powerful ( since YACC
-		 compile LALR(1) grammar, which can describe larger
-		 language set than LL(k) grammar could. ).
-		 In this version the semantic stack support is implemented.
-		 Also notice that all symbols to be used in production rule
-		 must be defined first ( except for system goal which
-		 is unique and is defined by GOAL: ... ;GOAL ) . So forward
-		 refernece is allowed.
-		    It can be used to describe many language if you prevent
-		 the "left-recursion" problems in your grammar ( note that
-		 since it is 'k' token lookahead, "common prefix" should
-		 not cause any problem, this is very different from LL(1)
-		 grammar ) .
-		    With a proper defined grammar, you can obtain a
-		 recursive-descent parser from LL(k)GEN.4TH . A good example
-		 is INFIX.4TH, it also demonstrates how to operate semantic
-		 stack, the usage is quite similar to YACC.
-		    Note that no "regular expression" compiler like LEX has
-		 been implemented yet, the default "scanner" use BL ( ASCII
-		 32 ) as delimiter.
-		    LL(k)Gen itself is also a good demonstration for shortcut
-		 boolean evaluation which could be used to generate PROLOG
-		 like programs !
-
-  INFIX.4TH    : Infix syntax supported, since it is just a preprocessing,
-		 it works for both interpreting mode and compiling mode,
-		 like : ( 1234 + 432 > 231  AND  32 + 234 / 5 < 10 ).
-		 Floating operators works too, but not all operators. See
-		 DEMO_IFX.4TH for operator precedence.
-
-  LL(k)GEN.ART : An LL(k) generator, art version. It's the original version
-		 in v1.643 but remove all comments. An art should explain 
-		 itself. You will be surprised that there is no IF...ENDIF. 
-		 Besides, the program is very symmetric. I have use this 
-		 version to write the original INFIX.4TH in v1.643. Now it
-		 is included just for demonstration the power of shortcut
-		 boolean evaluation.
-
-  INFIX.ART    : A infix syntax convertor using LL(k)GEN.ART, this file 
-		 is included only to demonstrating that LL(k)GEN.ART works.
-		 INFIX.ART itself is not good enough to be an art.
-
   DOSCMD.4TH   : Commonly used DOS words like DIR , COPY , CD ...
-
-  INTR.4TH     : An exception handler prototype. That's why it is a standalone
-		 program. It will be integrated into this system kernel soon.
-		 Any task that violates the system integrity will be stopped
-		 and the system reset to SINGLE processing.
-		 You must perform 'SetupVectors' after you FLOAD INTR.4TH,
-		 THIS PROGRAM APPLIES ONLY TO 486 SINCE FLOATING EXCEPTIONS
-		 HAVE NOT BEEN FULLY IMPLEMENTED.
-		 Try this after you have SetupVectors :
-
-		     BACKGROUND: DIVIDED-BY-ZERO
-			   10000 FOR PAUSE NEXT
-			   10 0 / ;
-		     DIVIDED-BY-ZERO WAKE
-		     MULTI
-
-		   Note that segment violation is handled by GO32 and I cannot
-		 handle that, it will be handled in Common Forth for DJGPP 2.0.
-
-  DBG1652.4TH  : An assembly level debugger for Common Forth v1.652 written by 
-		 Sam Chen, not fully implemented yet. 
-		 If you see wired characters in source code, it is Chinese 
-		 Big-5 code.
 
   CHINESE.4TH  : A Chinese System for Common Forth, support Eten System,
 		 and Chinese input facility have not been implemented yet .
@@ -726,6 +670,23 @@ What are the differences between CF and other Forth systems ?
                  now the printer output is thru BIOS calls, and it will 
                  check for printer busy to achieve minimum delay for 
                  faster printers.
+
+  LOG.4TH      : A very useful tool for logging terminal texts, written by
+                 Sam Chen and modified by Luke Lee for graphics mode. It's
+                 especially useful while debugging. For example :
+                   FLOAD LOG.4TH
+                   LOGTO HANOI.LOG
+                   TRACER ON
+                   FLOAD HANOI.4TH
+                   TRACER OFF TRACING ON
+                   4 TOWER-OF-HANOI
+                   LOGEND
+                   DOS EDIT HANOI.LOG
+
+  DBG1652.4TH  : An assembly level debugger for Common Forth v1.652 written by
+		 Sam Chen, not fully implemented yet. 
+		 If you see wired characters in source code, it is Chinese 
+		 Big-5 code.
 
 ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
   Meta Compilation Modules
@@ -754,8 +715,6 @@ What are the differences between CF and other Forth systems ?
 
   DEMO_GRX.4TH : Only partially implemented, demonstrates the minimal power
 		 of GRX library and GRX text-emulation .
-
-  DEMO_IFX.4TH : Simple demonstration for infix syntax .
 
   ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
   3DROTATE.4TH : A program written by George Mai, and I just port it
@@ -873,11 +832,19 @@ What are the differences between CF and other Forth systems ?
 
    Demonstration programs for MetaForth :
 
-	HI.MF    : Miscellaneous hi-level definitions for MetaForth,
-		   including an LL(K)Gen and infix expression parser.
+        HI.MF    : Miscellaneous hi-level definitions for MetaForth.
 	HANOI.MF : Tower-of-Hanoi .
 	FIB.MF   : Fibonacci number .
 	TEST.MF  : Several testing .
+
+      How to run :
+        1. GO32 MF
+        2. FLOAD HI.MF
+        3. FLOAD TEST.MF
+        4. FLOAD HANOI.MF
+        5. 4 TOWER-OF-HANOI
+        6. FLOAD FIB.MF
+        7. .FIBSEQ
 
 	Note :
 	   1. MF. is build from MAKEFILE with DJGPP.
@@ -888,12 +855,9 @@ What are the differences between CF and other Forth systems ?
 
 					eMail address : comforth@ms2.hinet.net
 
-						       Common Forth Labortory
-
 	þ P.S.  Mail me only bugs since I might not have time to reply your
 		letter, please. And Thanks.
 
-						       07/15/'96    Luke Lee
+						       10/09/'97    Luke Lee
       .   ú  ú  ù  ù ùùùÄ ÄÄ ÄÄÄ ÄÄÄÄ ÄÄÄÄÄÄ ÄÄÄÄÄÄÄ ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
 
-

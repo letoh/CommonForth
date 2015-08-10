@@ -7,7 +7,7 @@ ECHO * Stripping %1 ...
 COPY %1 %1_.TMP >NUL
 STRIP %1_.TMP
 ECHO * Binding %1 and GO32.EXE ...
-COPY /BGO32.EXE+%1_.TMP %1.EXE >NUL
+COPY /B GO32.EXE+%1_.TMP %1.EXE >NUL
 DEL %1_.TMP
 ECHO * ok
 goto :end

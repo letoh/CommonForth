@@ -1,9 +1,8 @@
-// Common Forth  for  80386 Protected Mode
-
 // ////////////////////////////////////////////////////////////////////////////
 //       Common Forth
-//       Experiment Version 1.668แ,     1991,1992,1993,1994,1995,1996
-//       Last update 09/19/'96
+//       Experiment Version 1.669
+//                              1991,1992,1993,1994,1995,1996,1997,1998,1999
+//       Last update 07/25/1999
 //
 //       F.I.G. Taipei Chapter
 //       Written by Luke Lee, ( Yuan-shune Lee )
@@ -152,9 +151,41 @@ CODE: DUP       ( w -- w w )    // Duplicate the top stack item.
         { EBP } EAX             MOV
 	RET     ;CODE 1 2 #PARMS MACRO
 
+COMMENT:    // optimize for memory size
 CODE: SWAP      ( w1 w2 -- w2 w1 ) // Exchange top two stack items.
-	{ EBP } EAX     XCHG
-	RET     ;CODE 2 2 #PARMS MACRO
+        { EBP } EAX     XCHG
+        RET     ;CODE 2 2 #PARMS MACRO
+
+CODE: ROT       ( w1 w2 w3 -- w2 w3 w1 ) // Rot 3rd item to top.
+        EAX     { EBP }         XCHG
+        EAX     { EBP CELL + }  XCHG
+        RET     ;CODE 3 3 #PARMS MACRO
+
+CODE: -ROT      ( w1 w2 w3 -- w3 w1 w2 ) // Rot top item to 3rd.
+        EAX     { EBP CELL + }  XCHG
+        EAX     { EBP }         XCHG
+        RET     ;CODE 3 3 #PARMS MACRO
+;COMMENT
+
+CODE: SWAP      ( w1 w2 -- w2 w1 )      // Exchange top two stack items.
+        EDX     { EBP } MOV             // Speedup by Charles Liu 01/08/1999
+        { EBP } EAX     MOV
+        EAX     EDX     MOV
+        RET     ;CODE 2 2 #PARMS MACRO
+
+CODE: ROT    ( w1 w2 w3 -- w2 w3 w1 )   // Rot 3rd item to top.
+        EDX     { EBP } MOV             // Speedup by Charles Liu 01/08/1999
+        { EBP } EAX     MOV
+        EAX     { EBP CELL+ }   MOV
+        { EBP CELL+ }   EDX     MOV
+        RET     ;CODE 3 3 #PARMS MACRO
+
+CODE: -ROT    ( w1 w2 w3 -- w3 w1 w2 )  // Rot top item to 3rd.
+        EDX     { EBP CELL+ }   MOV     // Speedup by Charles Liu 01/08/1999
+        { EBP CELL+ } EAX       MOV
+        EAX     { EBP } MOV
+        { EBP } EDX     MOV
+        RET     ;CODE 3 3 #PARMS MACRO
 
 CODE: OVER      ( w1 w2 -- w1 w2 w1 ) // Copy second stack item to top.
 	] DUP [         // macro expansion
@@ -164,16 +195,6 @@ CODE: OVER      ( w1 w2 -- w1 w2 w1 ) // Copy second stack item to top.
 CODE: PICK      ( ... +n -- ... w ) // Copy the nth stack item to tos.
 	EAX     { EBP EAX *4 + } MOV
 	RET     ;CODE 1 1 #PARMS MACRO
-
-CODE: ROT       ( w1 w2 w3 -- w2 w3 w1 ) // Rot 3rd item to top.
-	EAX     { EBP }         XCHG
-	EAX     { EBP CELL + }  XCHG
-	RET     ;CODE 3 3 #PARMS MACRO
-
-CODE: -ROT      ( w1 w2 w3 -- w3 w1 w2 ) // Rot top item to 3rd.
-	EAX     { EBP CELL + }  XCHG
-	EAX     { EBP }         XCHG
-	RET     ;CODE 3 3 #PARMS MACRO
 
 CODE: NIP       ( w1 w2 -- w2 )
 	EBP     { EBP CELL + }  LEA
@@ -199,9 +220,8 @@ CODE: XOR       ( w w -- w ) // Bitwise exclusive OR.
 	RET     ;CODE 2 1 #PARMS MACRO
 
 CODE: 0<        ( n -- t ) // Return true if n is negative.
-	CDQ
-	EAX     EDX     MOV     // sign extend
-	RET     ;CODE 1 1 #PARMS MACRO
+        EAX     31 #    SAR     // modified by Leo Liu 06/22/'98
+        RET     ;CODE 1 1 #PARMS MACRO
 
 CODE: 0=        ( n -- t )
 	EAX     1 #     SUB
@@ -213,21 +233,19 @@ CODE: 0<>       ( n -- t )
 	EAX     EAX     SBB
 	RET     ;CODE 1 1 #PARMS MACRO
 
-CODE: 0>        ( n -- f )
-	EAX     NEG
-	CDQ
-	EAX     EDX     MOV
-	RET     ;CODE 1 1 #PARMS MACRO
+CODE: 0>        ( n -- f )              // Bug fix by Leo Liu 06/22/'98
+        EAX     DEC
+        EAX     $7FFFFFFF #     CMP                  
+        EAX     EAX     SBB
+        RET     ;CODE 1 1 #PARMS MACRO
 
-CODE: SGN       ( n -- -1/0/1 )       // : SGN DUP 0< SWAP 0> - ;
-	// return -1 if negative, 0 if zero, 1 if positive
-	CDQ                     
-	ECX     EDX     MOV     //  n   ECX  EDX
-	EAX     NEG             //  -   -1    0
-	CDQ                     //  0    0    0
-	ECX     EDX     SUB     //  +    0   -1
-	EAX     ECX     MOV
-	RET     ;CODE 1 1 #PARMS MACRO
+CODE: SGN       ( n -- -1/0/1 )         // : SGN DUP 0< SWAP 0> - ;
+        // return -1 if negative, 0 if zero, 1 if positive
+        EDX     EAX     MOV             // Bug fix by Leo Liu 06/22/'98
+        EAX     31 #    SAR
+        EDX     NEG
+        EAX     EAX     ADC
+        RET     ;CODE 1 1 #PARMS MACRO
 
 CODE: =     ( w w -- t )    // Return true if top two are equal.
 	EAX   { EBP }   XOR     // : =   XOR 0= ;
@@ -867,37 +885,21 @@ CODE: DF>TOS    ( -- double )   // move ST(0) to TOS, double precision
 	] DROP [
 	RET     ;CODE 0 2 #PARMS MACRO
 	
-CODE: COMP      ( S D len -- flag )
-	//       Compare len bytes, flag=0 if S=D,
-	//                          flag<0 if S<D,
-	//                          flag>0 if S>D.
-	ECX     EAX     MOV
-	EDI   { EBP }   MOV
-	EDX     EBP     MOV
-	EDX     CELL 2 * #      ADD
-	ESI   { EBP CELL + }    MOV
-	CLD
-	ECX     $03 #   AND     // strlen MOD 4
-      REPE      CMPSB
-	=       IF
-		EAX     2 #     SHR
-		ECX     EAX     MOV
-	      REPE      CMPSD
-		=       IF
-			EAX     ECX     MOV     // if equal, ECX = 0
-			EBP     EDX     MOV
-			RET
-	SWAP ENDIF
-			EAX     BYTE^ { ESI 1- }        MOVZX
-			AL      BYTE^ { EDI 1- }        SUB
-			EAX     AL      MOVSX
-			EBP     EDX     MOV
-			RET
-		ENDIF
-	EAX   { ESI CELL- }     MOV
-	EAX   { EDI CELL- }     SUB
-	EBP     EDX     MOV
-	RET     ;CODE 3 1 #PARMS
+CODE: COMP      ( S D len -- flag )     // Modified by Charles Liu on 01/30/1999
+        //       Compare len bytes, flag=0 if S=D,
+        //                          flag<0 if S<D,
+        //                          flag>0 if S>D.
+        EDI   { EBP }             MOV
+        ESI   { EBP CELL+ }       MOV
+        EBP   { EBP 2 CELL* + }   LEA
+        ECX     EAX               MOV
+        $E3 C, $0B C,           // skip if ECX = 0
+        CLD
+        REPE    CMPSB
+        AL      SETA            // if S<=D, AL = 0; if S>D, AL = 1
+        AL      0 #     SBB     // if S<D, AL = -1; if S=D, AL = 0; if S>D, AL = 1
+        EAX     AL      MOVSX   // sign-extend
+        RET     ;CODE 3 1 #PARMS
 
 : (get-page)    ( -- ? ? ? ? ? EBX )
       // EBP EDI ESI EDX ECX EBX  EAX  int#/flag
@@ -2289,20 +2291,23 @@ CODE: <forth_interpret>  ( ? -- Error? ) ( RStack: length string retadr )
 CR .( * Hardware reset ...)
 
 : VER   ( -- n ) // Return the version number of this implementation.
-	$1668 ; 0 1 #PARMS
+	$1669 ; 0 1 #PARMS
 
 : hi    ( -- ) // Display the sign-on message of Common Forth.
-	!IO // CLS
-	." ีอออออออออออออออออออออออออออออออออออธ" CR
-	." ณ          Common  Forth            ณ" CR
-	." รฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤฤด" CR
-	." ณ     Experiment Version "
-	BASE @ HEX VER <# # # # ASCII . HOLD # #> TYPE BASE !
-				      ." แ     ณ" CR
-	." ณ     * Written by : Luke Lee *     ณ" CR
-	." ณ       F.I.G. Taipei, Taiwan       ณ" CR
-	." ณ    [ Last Update : 09/19/'96 ]    ณ" CR
-	." ิอออออออออออออออออออออออออออออออออออพ" CR ; 0 0 #PARMS INVISIBLE
+        CR
+." ฺ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฟ" CR
+." ณ                          Common  Forth  System                            ณ" CR
+." ณ       [  A  Forth & C++  Environment  for  Software  Development   ]      ณ" CR
+." ณ                    Copyright (C) 1991-1999  Luke Lee                      ณ" CR
+." ร-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ด" CR
+." ณ                       Experiment Version : "
+                  BASE @ HEX VER <# # # # ASCII . HOLD # #> TYPE BASE !
+                                                  ."                           ณ" CR
+." ณ                Written by : Luke Lee  [ Taipei,Taiwan ]                   ณ" CR
+." ณ                    eMail to : comforth@ms2.hinet.net                      ณ" CR
+." ณ                       [ Last Update : 07/25/'99 ]                         ณ" CR
+." ภ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ฤ-ู" CR
+        ; 0 0 #PARMS INVISIBLE
 
 : 'BOOT ( -- a ) // The application startup vector.
 	doVAR [ ' hi , ] ; 0 1 #PARMS
