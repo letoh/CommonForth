@@ -306,7 +306,7 @@ FORTH DEFINITIONS                                                               
 1 #TKN #TKN   1 #TKN [']       1 #TKN [COMPILE] 1 #TKN :                                                          // 266
 1 #TKN '      1 #TKN A:        1 #TKN AtrChk:   1 #TKN CODE:  1 #TKN CONSTANT                                     // 267
 1 #TKN CREATE 1 #TKN DEFER     1 #TKN FORGET                                                                      // 268
-1 #TKN USERVAR   1 #TKN VARIABLE  1 #TKN VALUE     1 #TKN WORD                                                       // 269
+1 #TKN USER   1 #TKN VARIABLE  1 #TKN VALUE     1 #TKN WORD                                                       // 269
 NotDebug #          NotDebug #>         NotDebug #S         NotDebug $Msk                                         // 270
 NotDebug $Msk?      NotDebug $Str.      NotDebug '?KEY      NotDebug 'CONSOLE                                     // 271
 NotDebug 'EMIT      NotDebug 'RESET-LIST                    NotDebug (DO)                                    ASSEMBLER         // 272

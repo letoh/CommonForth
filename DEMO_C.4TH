@@ -14,13 +14,6 @@ CR wait
 CR
 .( * Now do some testing ...) CR
 
-.( 1. Testing 'clrscr' ) wait
-clrscr
-
-.( 2. Testing 'gotoxy' ) wait
-1 1 gotoxy
-highvideo
-
 .( 3. Testing 'cprintf' ) wait
 : TEST
         4312234  1234  Z$" Testing cprintf... 1234=%d, 4312234=%d"
@@ -29,19 +22,15 @@ TEST
 
 .( 4. Testing 'system' ... ) CR
 
-YELLOW BLINK OR textcolor
 CR .( * Enter 'EXIT' to return to CF ...) CR
-normvideo
 
 DOS
-
-WHITE textcolor
 
 .( 5. Generating 100 random numbers with 'random' ) wait
 
 : TEST-RND      (| -- |)
         100 0 DO
-           random 1000 MOD . TAB
+           rand 1000 MOD . TAB
         LOOP ;
 TEST-RND
 
@@ -69,16 +58,7 @@ CR test1 CR wait
            atof( Z$" 1234.4321" ) , a , b ); DROP ;
 CR 1 2 test2 CR wait
 
-CREATE screen-buffer 80 25 * 2 * ALLOT
-: test3 (| -- |)
-        gettext( 1 , 1 , 80 , 25 , screen-buffer ); DROP
-        TEST-RND TEST-RND CR ."  About to restore original screen ..." wait
-        puttext( 1 , 1 , 80 , 25 , screen-buffer ); DROP ;
-test3 wait
-
-
-
-: TEST1 (( -- ))
+: TEST1 ( -- )
         cprintf( Z$" %f" , atof( Z$" 1234.4312" ) ); 4DROP ;
 CR TEST1 wait
 
@@ -87,8 +67,6 @@ CR TEST1 wait
                  atof( Z$" 1234.4321" ) , a , b ); 
         DROP ;
 CR 1 2 TEST2 wait
-
-normvideo
 
 CREATE strbuf1  40 ALLOT
 CREATE strbuf2  40 ALLOT

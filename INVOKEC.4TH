@@ -17,9 +17,9 @@
 // 01/28/'96 : Rename TRANSLATE-BLOCK into TRANSLATE .
 // 07/02/'96 : Modify constant value of P_WAIT according to different compiler
 
-: DJGPP_GO32 ; INVISIBLE
+// : DJGPP_GO32 ; INVISIBLE
 
-// : WATCOM_C/C++ ; INVISIBLE
+: WATCOM_C/C++ ; INVISIBLE
 
 DECIMAL
 

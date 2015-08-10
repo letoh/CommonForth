@@ -1,0 +1,24 @@
+ This directory contains Watcom C/C++ version, only those files that are
+ different from DJGPP/GO32 version are here .
+
+ PMW122.ZIP : PMODE/W DOS Extender for WATCOM .
+
+ PMODEW.MAK  : Makefile for PMODE Dos Extender. 
+               WMAKE -f pmodew.mak   will create CF.EXE .
+               Since PMODE/W does not provide virtual memory, you must
+               have about 4...5 M free XMS Memory.
+
+ PHARLAP.MAK : Makefile for PHARLAP's RUN386 .
+               WMAKE -f pharlap.mak will create CF.EXP .
+               RUN386 CF    executing it.
+               ( Do this first : 
+                 CFIG386 CF.EXP -VM VMMDRV.EXP -MAXREAL FFFFH )
+
+ Note :
+     CF.IMG , CF.HED are the same as GO32 version, 
+     so does 3DRP.4TH and 3DROTATE.4TH .
+
+ Note :
+     GO32 version's INTR.4TH and DEMO_GRX.4TH cannot be used in this version.
+     ( LOADINFO.4TH is useless too ).
+
