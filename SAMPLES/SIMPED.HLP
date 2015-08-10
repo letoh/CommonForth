@@ -1,0 +1,152 @@
+ÉÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ»
+º   Simple  Editor  Help  file for  Experiment  Version  Special  v1.650     º
+ÈÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¼
+
+ ş The basic keyboard commands are similar to the Brief editor .
+
+ ş You can edit only one file at a time.
+
+ ş Press <F1> for help whenever you need help.
+
+ ş Any marked area will be executed after you leave editor by pressing <ESC>
+   or <Alt-X>, if you don't want them to be executed, just unmark them.
+
+ ş Note that there is not any UNDO commands, so be careful when deleting
+   any thing. That's why I support only a few deletion facilities.
+
+ ş Since this editor goes in graphics mode, it won't work with Chinese Systems
+   unless you press CTRL-ALT-A to switch to English mode before you use this
+   editor .
+
+ ş The maximum number of lines you could edit is 2048, you can modify it
+   in the source code, since the editing buffer is statically allocated,
+   2048 lines will takes at least 2048 * 85 = 170K bytes. (Though it is not
+   very significant to this system. You have about 3.3 M free virtual
+   memory space before you enter this editor. )
+
+ÛÛ If you try to edit a file which have longer than 2048 lines, it will
+   be clipped down to 2048 lines, DO NOT SAVE FILE ( ALT-W ) or you will
+   lost the rest of that file !!
+
+ÚÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ¿
+³  Basic Keyboard Operation  ³
+ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÙ
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+     Marking Commands
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+    There is only line-marking commands, no block marking facility.
+
+  <Alt-L>     : Start marking a line, another <Alt-L> will relief marked area.
+                When you are marking, you are not able to modify this line .
+
+  <Up> <Down> : Resize your marked area. <Up> will mark the upper line, <Down>
+                will mark the lower line.
+
+  <Page Up>   : Similar to <Up> <Down>, <PgUp> mark the entire page upward.
+  <Page Down> : <PgDn> will mark the entire page ( 25 lines ) downward.
+
+  <Alt-A>     : Append marked area to a file. You are requested to input a
+                file name in the status line.
+
+  <Alt-W>     : Write the marked area to a file, you will be asked for inputing
+                a file name to write over. If there is no marked area, the
+                entire editing file will be written .
+
+      ş While you are requested to input a file name in the status line :
+        1. The keyboard command is the same as you were in command line.
+        2. If you have already input a file name to written to, at the next
+           time you are asked to input a file name, just press <Up> and the
+           last file name you used will appear.
+        3. At any time, press <ESC> will cancel your inputing.
+
+  <ESC>       : Leave editor, if the marked area still remains, they will
+                be pasted into your command line just like you type them in.
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+     File  Commands
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  <Alt-W>     : Write the entire editing file if you have marked nothing.
+
+  <Alt-R>     : Read a file and insert them in current line ( where the
+                cursor is ).
+
+  <Alt-E>     : Edit a file, if the old file have not been saved, you
+                will be asked to save them before asking you to input a
+                edit file name. The system default file name is NONAME.4TH,
+                it won't be read into memory when you enterred this simple
+                editor. If you want to edit the old NONAME.4TH, use this
+                command and press <Up> when you are asked to input a file
+                name .
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+     Function  Keys
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  <F1>        : Editor help.
+  <F2>        : Save current editing file.
+  <F5>        : Show User Screen.
+  <F9>        : Refresh Screen.
+
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+    Miscellaneous Commands and Cursor Movements
+  ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  <Ctrl-B>    : Browse mode, good for reading files, this mode can prevent
+                accidental modifications to editing file.
+
+  <Ins>       : Switch between insert mode and replace mode, this key does
+                not work in browse mode.
+
+  <Alt-K>     : Kill character to end of line.
+
+  <Alt-D>     : Delete current line.
+
+  <Del>       : Delete the following character.
+
+  <Backspace> : Delete the previous character .
+
+  <Enter>     : In inserting mode, press <Enter> will move all characters
+                after the cursor to the next line, new line will be inserted.
+                In replacing mode and browsing mode , press <Enter> just move
+                the cursor to the beginning of the next line and no line
+                inserted.
+
+  <Home>      : The continuous three press of <Home> have different meanings :
+                The first <Home> move cursor to the beginning of current line,
+                the second <Home> to top of current screen, the third to the
+                top of file.
+
+  <End>       : Similar to <Home> but to end of current line, to bottom of
+                current screen, and to the end of file.
+
+  <Tab>       : Move cursor to the next 8-characters gap.
+
+  <Shift-Tab> : Reverse <Tab> .
+
+  Other cursor movement commands needs no explaination :
+
+  <Up> <Down> <Left> <Right> <Ctrl-Left> <Ctrl-Right>
+
+ ÄÄÄÄÄÄÄÄÄÄÄÄÄ
+    Other
+ ÄÄÄÄÄÄÄÄÄÄÄÄÄ
+
+  1. This editor does not save your editing file automatically, so be careful
+     not to crash your system, or save current file before executing any
+     dangerous commands or programs. Press <Ctrl-Break> will surely abort
+     this system .
+
+  2. If you forgot to save the editing file, you will receieve a message
+     for saving when you BYE or BYE' .
+
+  3. This editor is implemented in haste, so don't blame me for bugs, just
+     tell me where went wrong and it MIGHT get fixed ( since some of them
+     are not what I can control ... like GO32 ).
+
+                                                      Luke Lee. 10/22/'95
+
+
+

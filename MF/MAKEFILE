@@ -1,0 +1,14 @@
+#  makefile for DJGPP
+#  Meta Forth loader for GO32
+#						Written by  : Luke Lee
+#						Last update : 02/05/'96
+
+CFLAGS = -g -fomit-frame-pointer
+LNK    = -Wl,-T,MF.LD
+
+all: mf.
+
+mf. :   mf.cc
+	gcc mf.cc $(CFLAGS) -o mf $(LNK)
+
+

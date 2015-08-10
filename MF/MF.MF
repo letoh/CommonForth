@@ -1,0 +1,291 @@
+// Meta Forth 1.0 by Luke Lee      02/03/'96
+
+// ////////////////////////////////////////////////////////////////////////
+// Base address     : $180000 
+// Total Size       : 512 k
+// Initial codes    : 64 bytes
+// System variables : 64 bytes ( 16 cells )
+// File buffer      : 64 k
+// Data stack       : 64 k 
+// Return stack     : 64 k
+// System variables start from offset 64 are :
+//    BASEADDR  ^COLD  LAST  CURR  DP  SP0  RP0  TIB0  HANDLER
+//    'EVAL  FILEBUF0 	>IN  SPAN  #TIB
+// ////////////////////////////////////////////////////////////////////////
+
+DECIMAL
+
+CR .( **** Entry point **** )
+
+HERE
+        $ MFINIT
+
+HERE SWAP - 128 SWAP - ALLOT
+
+CR .( **** System variables **** ) CR
+: BASEADDR $ BASEADDR ;M  : ^COLD    $ ^COLD ;M
+: LAST     $ LAST ;M  	  : CURR     $ CURR ;M      : DP    $ DP ;M
+: SP0      $ SP0 ;M    	  : RP0      $ RP0 ;M       : TIB0  $ TIB0 ;M
+: HANDLER  $ HANDLER ;M   : FILEBUF0 $ FILEBUF0 ;M  : 'EVAL $ 'EVAL ;M
+: >IN      $ >IN ;M	  : SPAN     $ SPAN ;M	    : #TIB  $ #TIB ;M
+
+CR .( **** Initial code copy **** ) CR
+: MFINIT  $ MFINIT ;M
+
+CR .( **** CPU **** ) CR
+// Stack operations //
+: DUP	$ DUP ;M   : OVER  $ OVER ;M
+: DROP	$ DROP ;M  : NIP   $ NIP ;M
+: SWAP  $ SWAP ;M  : ROT   $ ROT ;M   : -ROT   $ -ROT ;M  
+: >R	$ >R ;M    : R@	   $ R@ ;M    : R>     $ R> ;M    : RDROP  $ RDROP ;M
+// Memory operations //	
+: C@	$ C@ ;M	   : H@    $ H@ ;M    : @      $ @ ;M
+: C!	$ C! ;M	   : H!	   $ H! ;M    : !      $ ! ;M
+: 0     $ 0 ;M     : literal $ literal ;M
+// Register operations //
+: RP@	$ RP@ ;M   : RP!   $ RP! ;M   : SP@    $ SP@ ;M   : SP!	   $ SP! ;M
+// Logical operations //
+: NOT   $ NOT ;M   : AND   $ AND ;M   : OR     $ OR ;M    : XOR    $ XOR ;M
+: 0<    $ 0< ;M    : 0>    $ 0> ;M    : 0<>    $ 0<> ;M   : 0=     $ 0= ;M    
+: U<    $ U< ;M    : U>    $ U> ;M
+: U2/   $ U2/ ;M   : 2*    $ 2* ;M
+// Arithmetic operations //
+: 2/    $ 2/ ;M    : 1+    $ 1+ ;M    : 1-     $ 1- ;M    : NEGATE $ NEGATE ;M
+: UM+   $ UM+ ;M   : UM*   $ UM* ;M   : UM/MOD $ UM/MOD ;M
+: +     $ + ;M     : -     $ - ;M     : *      $ * ;M     : /MOD   $ /MOD ;M
+// Code flow operation //
+: call     $ call ;M        : exit    $ exit ;M
+: ?branch  $ ?branch ;M     : branch  $ branch ;M	  : next  $ next ;M
+
+CR .( **** BIOS **** ) CR
+: BYE      $ BYE ;     : (OPEN)	  $ (OPEN) ;	: (FSAVE)   $ (FSAVE) ;
+: (KEY)    $ (KEY) ;   : (EMIT)   $ (EMIT) ;
+
+CR .( **** CPU Extension **** ) CR
+: NOOP    ;         : WITHIN  OVER - >R - R> U< ;
+: +!      SWAP OVER @ + SWAP ! ;
+: >       - 0> ;    : =     - 0= ;      : <    - 0< ;      : <>  - 0<> ;
+: >=      < NOT ;   : <=    > NOT ;
+: /       /MOD NIP ;      : MOD   /MOD DROP ;
+: CELL    4 ;    : CELL+  4 + ;    : CELL*  2* 2* ;     : CELL/  U2/ U2/ ;
+: 2DUP    OVER OVER ;     : 2DROP DROP DROP ;     : 2SWAP >R -ROT R> -ROT ;
+: ?DUP    DUP IF DUP THEN ;
+: ABS     DUP 0< IF NEGATE THEN ;
+: MAX     2DUP < IF SWAP THEN DROP ;    : MIN   2DUP > IF SWAP THEN DROP ;
+: EXECUTE >R ;   : @EXECUTE @ >R ;
+
+CR .( **** FORTH System Memory Access **** ) CR
+: HERE    DP @ ;    : ALLOT   DP +! ;   : PAD     HERE $100 + ;
+: TIB     TIB0 @ ;  : BL      $20 ;	: DEPTH   SP@ SP0 @ SWAP - 2/ 2/ ;
+: PICK    1+ CELL* SP@ + @ ;		: COUNT   DUP 1+ SWAP C@ ;
+: CMOVE   FOR AFT   >R DUP C@ R@ C! 1+ R> 1+	THEN NEXT 2DROP ;
+: FILL    SWAP  FOR SWAP AFT   2DUP C! 1+   THEN NEXT  2DROP ;
+: ERASE   0 FILL ;
+: PACK$   ( b u a -- a )  DUP >R 2DUP C! 1+ 2DUP + 0 SWAP ! SWAP CMOVE R> ;
+
+CR .( **** Variables and Constants **** ) CR
+: doVAR   R> ;  : doCONST  R> @ ;
+: HLD	  doVAR	[ 0 , ] ; -1 ALLOT 
+: tmp	  doVAR [ 0 , ] ; -1 ALLOT
+: rdptr^  doVAR [ 0 , ] ; -1 ALLOT
+: BASE	  doVAR [ 10 , ] ; -1 ALLOT
+: 'KEY	  doVAR [ ' (KEY) , ] ; -1 ALLOT
+: 'EMIT   doVAR [ ' (EMIT) , ] ; -1 ALLOT
+: 'prompt doVAR [ ' NOOP , ] ; -1 ALLOT
+
+CR .( **** Number to String Convertion **** ) CR
+: DIGIT   $9 OVER < $7 AND + [ CHAR 0 ] LITERAL + ;
+: EXTRACT 0 SWAP UM/MOD SWAP DIGIT ;
+: <#      PAD HLD ! ;
+: HOLD    HLD @ 1- DUP HLD ! C! ;
+: #       BASE @ EXTRACT HOLD ;
+: #S      BEGIN # DUP WHILE REPEAT ;
+: SIGN    0< IF [ CHAR - ] LITERAL HOLD THEN ;
+: #>      DROP HLD @ PAD OVER - ;
+: str     DUP >R ABS <# #S R> SIGN #> ;
+: HEX     $10 BASE ! ;   : DECIMAL  $0A BASE ! ;
+
+CR .( **** String to Number Convertion **** ) CR
+: DIGIT?  >R [ CHAR 0 ] LITERAL - $9 OVER <
+	  IF  $7 - DUP $0A < OR  THEN DUP R> U< ;
+: NUMBER? BASE @ >R  0 OVER COUNT
+          OVER C@ [ CHAR $ ] LITERAL =
+          IF  HEX SWAP 1+ SWAP 1-   THEN
+          OVER C@ [ CHAR - ] LITERAL = >R
+          SWAP R@ - SWAP R@ + ?DUP IF  
+	     1- FOR DUP >R C@ BASE @ DIGIT?
+                WHILE SWAP BASE @ * +  R> 1+
+             NEXT R@ NIP IF NEGATE THEN SWAP
+                ELSE R> R> 2DROP 2DROP 0
+                THEN DUP
+          THEN R> 2DROP R> BASE ! ;
+
+CR .( **** Basic I/O **** ) CR
+: KEY	  'KEY  @EXECUTE ;			 : EMIT  'EMIT @EXECUTE ;
+: SPACE   BL EMIT ;    	      			 : CR    $0D EMIT $0A EMIT ;
+: SPACES  0 MAX FOR AFT  SPACE  THEN NEXT ;
+: TYPE    0 MAX FOR AFT  DUP C@ EMIT 1+   THEN NEXT DROP ;
+: do$     DUP COUNT + 1+ ; // All CASCIIZ strings
+: $"|     R> do$ >R ;				 : .$ 	 COUNT TYPE ;
+: ."|     R> do$ >R .$ ;
+: .R      >R str R> OVER - SPACES TYPE ;         : .     str SPACE TYPE ;
+: .S	  DEPTH 1024 MIN FOR AFT R@ PICK . THEN NEXT ."| [ $,"  <- SP" ] CR ;
+: EXPECT  >R DUP
+	  BEGIN KEY DUP 13 <> WHILE
+		DUP 8 = IF  BL EMIT EMIT 1- OVER MAX  ELSE  OVER C! 1+  THEN
+	        2DUP - NEGATE R@ >=
+	  UNTIL		      ELSE   DROP
+	     		      THEN   RDROP SWAP - SPAN ! ;
+: qcr	  'prompt @ ['] NOOP <> IF  CR  THEN ;
+: QUERY   TIB 80 EXPECT SPAN @ #TIB ! 0 >IN ! qcr ;
+
+CR .( **** Parsing **** ) CR
+: parse   ( b u c -- b u delta ; <string> )
+          tmp !  OVER >R  DUP IF 
+             1-  tmp @ BL =  IF
+                FOR BL OVER C@ - 0< NOT 
+		   WHILE  1+
+                NEXT  R> DROP 0 DUP exit
+                   THEN  R>
+             THEN OVER SWAP
+             FOR tmp @ OVER C@ -  tmp @ BL =
+                IF 0< THEN WHILE  1+
+             NEXT DUP >R   ELSE R> DROP DUP 1+ >R
+                           THEN OVER -  R>  R> - exit
+          THEN OVER R> - ;
+: PARSE   ( c -- b u ; <string> )
+          >R  TIB >IN @ +  #TIB @ >IN @ -  R> parse >IN +! ;
+: WORD    PARSE HERE PACK$ ;
+: .(      [ CHAR ) ] LITERAL PARSE TYPE ; IMMEDIATE
+: //      $0A PARSE 2DROP ; IMMEDIATE
+: (       [ CHAR ) ] LITERAL PARSE 2DROP ; IMMEDIATE
+: CHAR    BL PARSE DROP C@ ;    : CTRL    CHAR $1F AND ;
+
+CR .( **** Dictionary Search **** ) CR
+: >NAME 40 - ;  : >LINK 12 - ;  : >SIZE 8 - ;  : >ATTR 4 - ;  : >BODY 5 + ;
+: NAME> 40 + ;  : LINK> 12 + ;  : SIZE> 8 + ;  : ATTR> 4 + ;  : BODY> 5 - ;
+: $=	  ( a1 a2 -- T/F )
+	  DUP C@ FOR  OVER C@ OVER C@ =
+	      WHILE  1+ SWAP 1+
+	  NEXT          -1
+	      ELSE RDROP 0
+	      THEN -ROT 2DROP ;
+: FIND    ( stradr -- cfa nfa | stradr 0 )
+	  LAST @ // stradr nfa
+	  BEGIN	 DUP 0<>     // stradr 0 F | stradr nfa T
+	     WHILE  2DUP $= NOT // stradr nfa t/f
+	  WHILE  NAME> >LINK @ // str nfa'
+	  REPEAT // stradr NFA
+	        NIP DUP NAME> SWAP // cfa nfa
+             THEN  ;
+
+CR .( **** Error handler **** ) CR
+: CATCH   SP@ >R HANDLER @ >R  RP@ HANDLER !  EXECUTE R> HANDLER !  RDROP 0 ;
+: THROW   HANDLER @ RP!  R> HANDLER !  R> SWAP >R SP!  DROP R> ;
+: NULL$   doVAR [ 0 , ] ;     : ABORT   NULL$ THROW ;
+: abort"  R> do$ >R SWAP IF  THROW  ELSE  DROP  THEN ;
+
+CR .( **** Name compilers **** ) CR
+: OVERT   CURR @ LAST ! ;     : RECURSIVE  OVERT ; IMMEDIATE
+: ?UNIQUE DUP FIND NIP IF  ."| [ $,"  Redefine " ] DUP .$  THEN DROP ;
+: HEADER  HERE CURR ! HERE 40 ERASE BL WORD
+          C@ 0= abort" [ $," Missing name " ]  HERE ?UNIQUE
+	  40 ALLOT  LAST @  CURR @ NAME> >LINK  !  ;
+: ATTRIB  LAST @ NAME> >ATTR SWAP OVER @ OR SWAP ! ;
+: IMMEDIATE  $01 ATTRIB ;     : MACRO   $80 ATTRIB ;
+
+CR .( **** Compiler words **** ) CR
+: '        BL WORD FIND 0= IF  THROW  THEN ;
+: ,        HERE !  4 ALLOT ;  : H,  HERE H! 2 ALLOT ;  : C,  HERE C! 1 ALLOT ;
+: rel,     HERE CELL+ - , ;
+: expand   ( ca -- ;macro expasion ) DUP >SIZE @ 1- HERE OVER ALLOT SWAP CMOVE ;
+: call,    ( ca -- ;relative call ) ['] call expand rel, ;
+: compile, ( ca -- ) DUP >ATTR @ $80 AND IF  expand  ELSE  call,  THEN ;
+: LITERAL  ( n -- ) ['] literal compile, , ; IMMEDIATE
+: $	   ' expand ; IMMEDIATE
+: \        ' compile, ; IMMEDIATE
+: [']      ' \ LITERAL ; IMMEDIATE
+: COMPILE  \ [']  ['] compile, compile,  ; IMMEDIATE
+: $,"      [ CHAR " ] LITERAL WORD do$ NIP DP ! ;
+
+CR .( **** Compiler/Interpreter **** ) CR
+: $COMPILE	( $a -- )
+	  FIND IF  DUP >ATTR @ $01 AND IF  EXECUTE  ELSE  compile,  THEN
+	  ELSE	   NUMBER? IF  \ LITERAL  ELSE  THROW  THEN
+	  THEN ;
+: ]	  ['] $COMPILE   'EVAL ! ;
+: $INTERPRET	( $a -- )
+	  FIND IF  EXECUTE
+	  ELSE	   NUMBER? 0= IF THROW THEN      THEN ;
+: [	  ['] $INTERPRET 'EVAL ! ; IMMEDIATE
+: ?STACK  DEPTH 0< abort" [ $," Stack underflow" ] ;
+: .OK	  'EVAL @ ['] $INTERPRET = IF  ."| [ $,"  ok" ] ?STACK THEN CR ;
+: EVAL    BEGIN	 BL WORD DUP C@
+          WHILE	 'EVAL @EXECUTE ?STACK
+          REPEAT DROP 'prompt @EXECUTE ;
+
+CR .( **** Defining Words **** ) CR
+: :	    HEADER  ]  ;
+: ;	    ['] exit expand  HERE  CURR @ 40 +  -   CURR @ NAME> >SIZE !
+            OVERT  \ [	; IMMEDIATE
+: ;M	    \ ; MACRO ; IMMEDIATE
+: ;DOES	    R>  DP @ >R  LAST @ NAME> DP !  call,  R> DP ! ;
+: DOES>     ['] ;DOES compile, ['] R> compile, ; IMMEDIATE
+: CREATE    HEADER OVERT ['] doVAR compile, ;
+: VARIABLE  CREATE 0 , ;
+: CONSTANT  HEADER OVERT ['] doCONST compile, , ;
+
+CR .( **** Structure Compilers **** ) CR
+: FOR     ( -- a ) ['] >R compile, HERE ; 		IMMEDIATE
+: NEXT    ( a -- ) ['] next compile, rel, ; 		IMMEDIATE
+: BEGIN   ( -- a ) HERE ; 				IMMEDIATE
+: UNTIL   ( a -- ) ['] ?branch compile, rel, ; 		IMMEDIATE
+: AGAIN   ( a -- ) ['] branch compile, rel, ; 		IMMEDIATE
+: IF      ( -- A ) ['] ?branch compile, HERE 0 rel, ;   IMMEDIATE
+: REPEAT  ( A a -- ) \ AGAIN HERE SWAP +! ;             IMMEDIATE
+: THEN    ( A -- ) HERE SWAP +! ;			IMMEDIATE
+: AHEAD   ( -- A ) ['] branch compile, HERE 0 rel, ;    IMMEDIATE
+: AFT     ( a -- a A ) DROP \ AHEAD \ BEGIN SWAP ;      IMMEDIATE
+: ELSE    ( A -- A ) \ AHEAD SWAP \ THEN ;		IMMEDIATE
+: WHILE   ( a -- A a ) \ IF SWAP ; 			IMMEDIATE
+: ABORT"  ( -- ; <string> ) ['] abort" compile, $," ;   IMMEDIATE
+: $"      ( -- ; <string> ) ['] $"| compile, $," ;      IMMEDIATE
+: ."      ( -- ; <string> ) ['] ."| compile, $," ;      IMMEDIATE
+
+CR .( **** System Boot **** ) CR
+: WORDS   CR LAST @ // nfa
+	  BEGIN  DUP 0<>
+	  WHILE	 DUP .$ SPACE  NAME> >LINK @
+	  REPEAT DROP CR ;
+: CONSOLE ['] (KEY) 'KEY !  ['] (EMIT) 'EMIT !  ['] .OK 'prompt !  ;
+: QUIT    RP0 @ RP!
+          BEGIN  \ [
+              BEGIN   QUERY ['] EVAL CATCH ?DUP   UNTIL  
+	      CONSOLE NULL$ OVER <> IF  SPACE .$ ."| [ $,"  ? " ]  THEN
+	      SP0 @ SP!
+          AGAIN ;
+: COLD    RP0 @ RP!  SP0 @ SP!   CONSOLE
+	  CR ."| [ $," [ MetaForth 1.0 by Luke Lee, 02/03/1996 ]" ] CR QUIT ;
+
+CR .( **** File loader **** ) CR
+: OPEN	  BL WORD 1+ (OPEN) NOT
+	  IF  ."| [ $," * Fail open " ] HERE .$ CR ABORT  THEN ;
+: FKEY    rdptr^ @ C@ DUP 26 ( CTRL Z ) = OVER 0= OR
+	  IF  CONSOLE DROP 13  THEN 1 rdptr^ +! ;
+: LOAD	  FILEBUF0 @ rdptr^ ! ['] FKEY 'KEY ! ['] NOOP 'prompt ! ;
+: FLOAD   OPEN LOAD ;
+: FSAVE   HERE BASEADDR @ - BL WORD 1+ (FSAVE) NOT
+	  IF  ."| [ $," * Fail saving " ] HERE .$ CR ABORT  THEN ;
+
+CR .( **** Meta compiler **** ) CR
+// Step1 : HERE META // Step2 : $180000 META FSAVE MF.BIN
+: META    DUP BASEADDR ! DP ! $200000 RP0 ! RP0 @ 65536 - TIB0 !
+	  TIB0 @ 64 - SP0 ! SP0 @ 65536 2* - 64 - FILEBUF0 !
+	  DECIMAL $"| [ $," MF.MF" ] 1+ (OPEN) DROP LOAD ;
+
+// Cut host system
+' COLD  ^COLD  !   ' COLD HANDLER !      0   ' BASEADDR >LINK  !
+// Execute target system
+BASEADDR @EXECUTE
+
+

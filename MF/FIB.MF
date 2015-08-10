@@ -1,0 +1,10 @@
+// FIBONACCI sequence demonstration
+
+: .FIBSEQ	( -- ) // display Fibonacci sequence
+      CR 0 DUP 16 U.R 1 DUP 16 U.R
+      BEGIN
+	 TUCK + DUP 16 U.R
+         2DUP U>
+      UNTIL 2DROP CR ;
+
+

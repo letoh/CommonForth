@@ -1,0 +1,213 @@
+This is djgpp's README.1ST, which you should have read before any other. 
+Please read this COMPLETELY before going any further. 
+
+WARNING: This software comes with ABSOLUTELY NO WARRANTEE.  I can't even
+guarantee that this software won't wipe out your entire hard drive (it's
+happened to a few people before, but we've fixed it).  USE AT YOUR OWN
+RISK! It's always a good idea to make regular backups of your hard
+drives anyway. 
+
+If you are installing djgpp off floppies, you should run the install
+program on disk 1.  This program will prompt you for all the information
+it needs to properly install djgpp on your system. 
+
+If you are using PKUNZIP to extract your files, don't forget the -d or
+you'll get them all in the same directory! All djgpp modules are
+designed to be unzipped from the same directory, so that they install
+themselves properly.  You should also use the -o switch, since some
+files are included in multiple modules. 
+
+You will need either PKUNZIP version 2 or higher, or InfoZip's unzip
+version 5.0 or higher.  A complementary copy of InfoZip's unzip is
+provided as UNZIP386.EXE in case you don't have either.  This file
+uses a merged copy of go32.exe, so you should re-stub it once you have
+go32 installed to save disk space.  For information on getting
+Info-Zip's zip and unzip programs, see the info blurb at the end of
+this file.
+
+You should be able to find documentation in various subdirectories of
+the docs directory in the djgpp distribution.  The files README and FAQ
+are in the djdocXXX.zip module.  If you install txiXXXbn.zip, you can
+run "info" to read this documentation. 
+
+The modules you'll want to start with are (replace XXX with an
+appropriate version number):
+
+ djdocXXX.zip  The base documentation
+ djeoeXXX.zip  Execution-only environment - extender binary, emu387,
+               some utils, README and FAQ
+ djdevXXX.zip  Basic development libraries and utilities
+ gccXXXbn.zip  GCC binaries, including C front end (no C++ or ObjC)
+ gasXXXbn.zip  Assembler - required for all compiles
+ bnuXXXbn.zip  Binary utilities - required for all compiles
+
+ djXXXmX.zip   Maintainance releases - install LAST and IN ORDER.
+
+Don't forget to use the "-o" switch on unzip, as some files are
+replicated throughout all the modules.  The command should look like
+this example:
+
+	unzip386 -o a:djeoe112.zip
+
+The EOE module is for people who only need the extender (go32) to run
+some other 32-bit program that didn't come with one.  The remainder
+of these modules listed above are required to compile C programs.
+
+For more information on installing and setting up djgpp, refer to the
+file docs/djgpp/readme.doc after you install
+
+Additional modules include:
+
+ djemuXXX.zip  80387 emulator sources
+ djlgrXXX.zip  Basic 256-color SVGA library (grx is better)
+ djsrcXXX.zip  Sources to extender and utilities
+ djlsrXXX.zip  Sources to all the libraries
+ djtstXXX.zip  Test programs to test djgpp
+
+ makXXXbn.zip  GNU Make
+ gppXXX.zip    C++ front end, headers, and libraries
+ objcXXX.zip   Objective-C front end, headers, and libraries
+ bsnXXXbn.zip  Bison (yacc-like parser)
+ flxXXXbn.zip  Flex (lex-like parser)
+ txiXXXbn.zip  On-line info reader INFO.EXE and info compiler
+ gzpXXXbn.zip  GZip compressor
+
+GNU programs are normally distributed as three files:
+
+ *bn.zip       Binaries for various GNU programs
+ *dc.zip       Documentation for various GNU programs
+ *sr.zip       Sources for various GNU programs (may be split
+               into *s1.zip...*sN.zip)
+ 
+
+djgpp is a complete 32-bit C and C++ development environment for DOS. 
+This product is intended for users who have experience using Unix, not
+DOS users who expect djgpp to act like any other DOS compiler.  This is
+NOT the software you want if you want to learn programming. 
+
+Supported: 80386, 80387, 80486, XMS, himem.sys, VCPI, QEMM, 386MAX,
+DesqView, Windows, OS/2, interrupts.
+
+Unsupported: XTs, 80286, multitasking, signals.
+
+Features: 80387 emulator, 32-bit unix-ish environment, flat memory
+model, debugger, SVGA graphics.
+
+    ====================  Reporting bugs  ====================
+
+ALL changes to the source code should be submitted in "diff -c2" format. 
+If you just send replacement files, I'll reject them, since I don't know
+which parts you've changed and my sources keep changing anyway.  Diffs
+will also be rejected for use of bcc features in go32 sources (like //
+comments), or more than one feature or bugfix per diff.  Please use the
+same programming style as the existing style when making changes to my
+sources. 
+
+Note that new features are not bugs.  If you would like to work on
+adding features to djgpp, please send me e-mail at dj@ctron.com
+beforehand, in case it's being worked on already and to coordinate it's
+integration.  If you want to request a new feature but not work on it,
+send to the mailing list. 
+
+If the problem is in one of the FSF utilities, please don't expect me to
+fix it.  Problems with FSF code should be reported to the FSF; I only
+compile the code and distribute it.  My best suggestion is to post to
+the appropriate newsgroup or mailing list, but if you can't find one,
+ask gnu@prep.ai.mit.edu. 
+
+If the problem is in anything else, and you have e-mail access, I strongly
+recommend joining the djgpp mailing list.  To do so, send mail to
+listserv@sun.soe.clarkson.edu:
+
+	$ mail listserv@sun.soe.clarkson.edu
+	Subject:
+	help
+	add <e-mail address> djgpp
+	^D
+
+Any mail sent to djgpp@sun.soe.clarkson.edu will get automatically
+forwarded to all the subscribers on the list, and someone may have an
+answer to your query.  Note that I (DJ) am of course a subscriber, so I
+will get it also. 
+
+If all else fails, you may contact me directly at dj@ctron.com
+(preferred) or at home:
+
+	DJ Delorie
+	24 Kirsten Ave
+	Rochester, NH 03867-2954
+	USA
+
+If you write, please include a stamped, self-addressed envelope.  The
+FSF (see README for address) sells djgpp on floppies, as do I.  If you
+would like a complete set of djgpp floppies from me, send a check or
+money order (made out to DJ Delorie) in the amount of US$100 to the
+address above.  Please specify 1.4M or 1.2M floppies, and allow a few
+weeks for processing and shipping.  You will automatically be registered
+for update notices and reduced prices on future versions.  To be added
+to the mailing list for new version notices ONLY, please send US$5 to
+the address above. 
+
+All phone calls will be returned collect.  Please leave a night/weekend
+phone number. 
+
+    ====================  Redistribution  ====================
+
+The utilities built from FSF code may NOT be made available through any
+means not prepared to also distribute the source for those utilities. 
+This isn't just a good idea, it's the LAW.  Read the file "copying" for
+more details on FSF copyright terms.  Since djgpp includes such
+binaries, it requires the same terms. 
+
+Programs that link in FSF code must comply with the GNU Library Public
+License, or the GNU General Public License.  All FSF objects are in
+libgpl.a and libgpp.a
+
+I strongly recommend prepending stub.exe (use coff2exe) for any programs
+you intend to distribute.  This aids upgrading go32, since stub.exe
+doesn't need to change, and coff2exe produces a faster executable due to
+disk alignment optimizations. 
+
+
+===== Info-Zip =====
+
+(extract from Info-Zip's "where" file used with permission)
+
+ftp sites for the US-exportable sources and executables:
+
+   NOTE:  Look for the file names given above in the following directories.
+   Some sites like to use slightly different names, such as zip-2.0.1.tar.gz
+   instead of zip201.tar.Z.  In the case of some comp.sources.misc archive
+   sites, directories may be used (zip201/part01.Z, ..., zip201/part11.Z,
+   zip201/patch01.Z, etc.).
+
+   ftp.uu.net:/pub/archiving/zip        [THIS MIRRORS THE INFO-ZIP HOME SITE]
+
+   oak.oakland.edu:/pub/msdos/{zip,windows3}       [AND OTHER SIMTEL MIRRORS]
+   oak.oakland.edu:/pub/misc/{unix,vaxvms}
+   garbo.uwasa.fi:/{unix,pc}/arcers                 [AND OTHER GARBO MIRRORS]
+   ftp-os2.cdrom.com:/pub/os2/{2_x,all}/archiver
+   ftp-os2.nmsu.edu:/os2/{2_x,all}/archiver
+   ftp.informatik.tu-muenchen.de:/pub/comp/os/os2/archiver
+   sumex-aim.stanford.edu:/info-mac/util
+   ftp.wustl.edu:/pub/aminet/util/arc              [AND OTHER AMINET MIRRORS]
+   atari.archive.umich.edu:/pub/Archivers (?)       [AND OTHER UMICH MIRRORS]
+   lpuds.oea.ihep.su:/ ... ?
+
+Bulletin boards (commercial and otherwise):
+
+   Sources, MS-DOS executables:
+      CompuServe IBMPRO forum, Library 10, Data Compression (unz512.zip,
+         sources; unz512.exe, self-extracting executables and docs)
+      CompuServe (ZiffNet) PBSUTIL forum and Public Brand Software BBS
+         [US, membership required; V.32 line, (317) 856-1490]
+         (unz512.zip, sources; unz512.exe, self-extracting exes and docs)
+      FidoNet node 1:124/2113, Lunatic Fringe [Richardson, Texas; BBS
+         (214) 235-5288; sysop john.stewart@lunatic.com; complete mirror
+         of Info-ZIP home site]
+      FidoNet node 1:246/74, Metal Shoppe BBS [Windsor, Ontario; CLink
+         node 911:6510/0; BBS (519) 256-0278; sysop rakey@cyberspace.net
+         (Ray Akey); micro-based files but no Unix/VMS/NT stuff]
+      Drealm Conference System [London, UK; V.22bis, subscriber lines
+         to V.32bis, etc.; (+44) 81 568 2204]
+      Compulink Information eXchange (CIX) [UK ... details?]

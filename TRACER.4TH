@@ -1,0 +1,267 @@
+// Simple program tracing tool				Version 1.7
+
+// !!!! NOTE !!!!
+//   There is one thing you must remember that if you define code words
+//   with CPU80486, you must turn off tracer ( TRACER OFF ) before you 
+//   start 'CODE:'ing otherwise this might turn out to crash your system.
+// !!!! NOTE !!!!
+//   Also notice that words that influence return stack cannot be traced.
+//   So if your program use >R , R> ... etc. This tracer might not work.
+//
+//   Written by : Luke Lee on 1/2/'95 for SEE.4TH
+//        updates : for including in HI.4TH, only EXIT modified.
+//        update : modify DOES>. after DOES> there can be no 
+//   	      	   PUT<trace_out> on ';' .
+//   	  update : implement PUT<tracein_does> for tracing codes 
+//   	     	   between 'DOES>' and ';'		08/31,09/01
+//   	  update : Modify #.S to ensure that 0..1024 cells displayed.
+//		   Also some UnderFlow? added .		02/27/'96
+//   	  update : Fix a bug while SHOWTRACE is OFF, modify ShowTracingInto
+//		   and ShowTracingOutof.		02/28/'96
+//   Last update : Modify for multitasking, prevent task switching while
+//		   'ShowTracingInto' and 'ShowTracingOutOf' . 03/12/'96
+// Available control flags :
+//
+//  TRACER : If it is ON, extra checking words ( which means <trace_in>
+//     	     and <trace_out> ) will be insert into code definitions .
+//	     Only when this flag is ON, the tracer would work.
+// 
+//  TRACING : If it is ON, all the following actions could be possible
+//	      since <trace_in> and <trace_out> works only when it is ON.
+//	
+//  DEPTHCHK : Check the number of input/output parameter and see if
+//	       it is consistent with the specified #PARMS.
+// 
+//  SHOWTRACE : Display the execution sequence of each call in/out.
+//		Any keyin will pause the displaying; press CTRL-C again
+//		will terminate tracing.
+// 
+//  SHOWFRAME : If it is ON, it will display the stack frame specified
+//      	by #PARMS instead of .S which display DEPTH elements on
+//	     	stack . But it works only when SHOWTRACE is ON.
+//
+//  UNSIGNED  : If this flag is ON, all the stack items will be displayed
+//		as unsigned integer. Default value is OFF.
+//
+// * If some execution abortion cause tracer's improper operation, use 
+//   TRACER/RESET to reset it.
+//
+// * Use TRACER/STATUS to display current flags setting.
+//
+// * During tracing, press any key will suspend tracing, press again
+//   will resume execution; press CTRL-Q will break tracing.
+//
+
+ONLY FORTH ALSO DEFINITIONS
+
+VARIABLE TRACER
+VARIABLE TRACING
+VARIABLE DEPTHCHK	// stack depth checker
+VARIABLE SHOWTRACE	// TRUE : show calling sequence.
+VARIABLE SHOWFRAME	// TRUE : show current IN/OUT only otherwise .S
+VARIABLE UNSIGNED	// TRUE : show current stack with unsigned value.
+
+// Default settings :
+TRACER    OFF
+TRACING   OFF
+DEPTHCHK  ON
+SHOWTRACE ON
+SHOWFRAME ON
+UNSIGNED  OFF
+
+: OPTIMIZE?     OPTIMIZE @ ; 0 1 #PARMS
+
+: .ON/OFF	(( T/F -- ))
+	IF ." ON" ELSE ." OFF" ENDIF ; 1 0 #PARMS
+
+: TRACER/STATUS	(( -- ))
+	CR ." TRACER " TRACER @ .ON/OFF TAB
+	." TRACING " TRACING @ .ON/OFF TAB
+	." DEPTHCHK " DEPTHCHK @ .ON/OFF TAB
+	CR ." SHOWTRACE " SHOWTRACE @ .ON/OFF TAB
+	." SHOWFRAME " SHOWFRAME @ .ON/OFF TAB
+	." UNSIGNED " UNSIGNED @ .ON/OFF CR ; 0 0 #PARMS
+
+: #.S	(( idepth -- ))	
+        DEPTH 1- // ignore the input parameter 'idepth' 05/05/'95
+        MIN 0 MAX 1024 MIN 
+	FOR AFT
+	   R@ PICK	
+	   UNSIGNED @ IF  U.H  ELSE  .H  ENDIF
+	THEN NEXT ; 1 0 #PARMS
+
+HIDDEN ALSO DEFINITIONS
+
+VARIABLE nesting	// nesting level while tracing
+
+FORTH DEFINITIONS
+
+: TRACER/RESET
+	TRACER OFF  TRACING OFF  DEPTHCHK ON  SHOWTRACE ON  SHOWFRAME ON
+	UNSIGNED OFF nesting OFF ; 0 0 #PARMS
+
+HIDDEN DEFINITIONS
+
+: UnderFlow?	(( -- ))
+	DEPTH 0< IF  
+	   MULTI? >R SINGLE
+	   nesting OFF CR ." * Stack underflow while tracing ." CR 
+	   R> IF MULTI ENDIF ABORT
+	ENDIF ; 0 0 #PARMS
+
+: CTRLQ?   (( ha -- ))  // Break tracing for CTRL-Q, suspend for any other key.
+	?KEY IF
+	   DROP KEY [ CTRL Q ] LITERAL = IF
+	      MULTI? >R SINGLE
+	      nesting OFF CR ." * User break while tracing " .ID ."  . ok" CR 
+	      R> IF MULTI ENDIF ABORT
+	   ENDIF
+	ENDIF DROP ; 1 0 #PARMS
+
+: tabs	nesting @ FOR AFT SPACE SPACE THEN NEXT ; 0 0 #PARMS
+
+: SHOWSTACK	(( depth -- ))
+	DEPTH
+	SHOWFRAME @ IF  MIN  ELSE  NIP  ENDIF
+	#.S  ; 1 0 #PARMS
+
+: ShowTracingInto   (( ha -- ))
+	MULTI? >R SINGLE
+	>R SHOWTRACE @ IF
+	   tabs ." <Enter " R@ .ID SPACE
+	   R@ |IN-PARMS C@ SHOWSTACK
+	   BKSPC [ CHAR > ] LITERAL EMIT CR
+	   1 nesting +!
+	   R@ CTRLQ?
+	ENDIF RDROP
+	R> IF MULTI ENDIF ; 1 0 #PARMS
+
+: <trace_in>	(( -- )) // TRACING OFF
+		(( -- )R: ret -- ha ret ) // DEPTHCHK OFF
+		(( -- )R: ret -- depthI ha ret ) // DEPTHCHK ON
+	TRACING @ IF
+	    R@ BODY> >HEAD >R	 // R: ret ha
+	    R@ ShowTracingInto
+	    DEPTHCHK @ IF		(( R: ret ha ))
+	       UnderFlow?
+	       DEPTH // while <trace_in>'s data stack frame is empty !
+	       R> R>	        	(( depthI ha ret ))
+	       ROT >R SWAP >R >R	(( R: depthI ha ret ))
+	    ELSE
+	       R> R> SWAP >R >R		(( R: ha ret ))
+	    ENDIF
+	ENDIF  ; 0 0 #PARMS
+
+: <tracein_does>  (( PFA -- PFA ))
+		  (( PFA -- PFA )R: -- ha ret )
+		  (( PFA -- PFA )R: -- dpethI ha ret )
+	TRACING @ IF
+	    >R R@ BODY> >HEAD >R	// R: ret PFA ha
+	    R@ ShowTracingInto
+	    DEPTHCHK @ IF		(( R: ret PFA ha ))
+	       UnderFlow?
+	       DEPTH // while <trace_in>'s data stack frame is empty !
+	       R> R> -ROT R>        	(( PFA depthI ha ret ))
+	       ROT >R			(( PFA ha ret )R: depthI )
+	    ELSE
+	       R> R> SWAP		(( PFA ha )R: ret )
+	       R>			(( PFA ha ret ))
+	    ENDIF
+	    SWAP >R >R			// PFA  R:  (depthI) ha ret 
+	ENDIF ; 1 1 #PARMS
+
+: DepthCheck	(( depth_I depth_O ha -- ))
+	>R -					// in-out ;R: ha
+	R@ |IN-PARMS C@  R@ |OUT-PARMS C@	// in-out .in .out ;R: ha
+	OVER $FF <>  OVER $FF <> AND  IF
+	   -  -  ?DUP 
+	   IF // (in-out)-(.in-.out) = (.out-.in)-(out-in)
+	      R> MULTI? >R >R
+	      CR ." * Stack depth checking failure after calling " R@ .ID ."  :"
+	      CR ."   " DUP 0> IF  . ." less"  ELSE  NEGATE . ." more"  ENDIF
+	      ."  elements left on stack." CR
+	      nesting OFF RDROP R> IF MULTI ENDIF
+	      ABORT
+	   ENDIF
+	ELSE
+	   3DROP 
+	ENDIF
+	RDROP ; 3 0 #PARMS
+
+: ShowTracingOutof  (( ha -- ))
+	MULTI? >R SINGLE
+        >R SHOWTRACE @ IF
+           -1 nesting +!
+           tabs ." <Leave " R@ .ID SPACE
+           R@ |OUT-PARMS C@ SHOWSTACK
+           BKSPC [ CHAR > ] LITERAL EMIT CR
+           R@ CTRLQ?
+        ENDIF RDROP
+	R> IF MULTI ENDIF ; 1 0 #PARMS
+
+: <trace_out>	(( -- ))
+		(( -- )R: ha ret -- )
+		(( -- )R: depthI ha ret -- )
+    TRACING @ IF
+        R> R> SWAP >R >R	// R: (depthI) ret ha 
+	R@ ShowTracingOutof
+        DEPTHCHK @ IF	(( )R: depthI ret ha )
+	   UnderFlow?
+           DEPTH // while <trace_out>'s data stack frame is empty !
+           R> R> R> 	(( depthO ha ret depthI ))
+           SWAP	>R      (( depthO ha depthI )R: ret )
+           -ROT DepthCheck
+        ELSE		(( )R: ret ha )
+           RDROP
+        ENDIF
+    ENDIF ; 0 0 #PARMS
+
+VARIABLE OLD-OPTIMIZE
+
+2VARIABLE TRACER-RESETTER
+
+: TRACER/LEAVE	(( -- ))  // accenditally abort during compiliation
+	OLD-OPTIMIZE @ OPTIMIZE !
+	TRACER-RESETTER POP-RESETTER ; 0 0 #PARMS
+
+: PUT<trace_in>	  (( -- ))
+	TRACER @ IF
+	     OPTIMIZE? OLD-OPTIMIZE ! OPTIMIZE OFF
+	     ['] TRACER/LEAVE  TRACER-RESETTER   PUSH-RESETTER	
+	     COMPILE <trace_in>
+	ENDIF ; 0 0 #PARMS
+
+: PUT<trace_out>  (( -- ))
+	TRACER @ IF   COMPILE <trace_out>       ENDIF ; 0 0 #PARMS
+
+: PUT<tracein_does>	(( -- ))
+	TRACER @ IF   COMPILE <tracein_does>	ENDIF ; 0 0 #PARMS
+	     
+FORTH DEFINITIONS
+
+: :	(( <name> -- ))
+	: PUT<trace_in>  ; 0 0 #PARMS
+
+: BACKGROUND:	(( <name> -- ))
+	BACKGROUND: PUT<trace_in>  ; 0 0 #PARMS
+
+: DOES> (( -- ))
+	PUT<trace_out>
+	\ DOES>
+	PUT<tracein_does>  ; IMMEDIATE COMPILEONLY 0 0 #PARMS
+
+: EXIT	(( -- ))
+	PUT<trace_out>
+	\ EXIT          ; IMMEDIATE 0 0 #PARMS
+
+: ;	(( -- ))
+	PUT<trace_out>  \ ;
+        TRACER @ IF  TRACER/LEAVE  ENDIF  ; IMMEDIATE COMPILEONLY 0 0 #PARMS
+
+: MACRO	(( -- ))	// NO MACRO while tracing
+	TRACER @ NOT IF  MACRO  ENDIF ; 0 0 #PARMS
+
+ONLY FORTH ALSO DEFINITIONS
+
+
+

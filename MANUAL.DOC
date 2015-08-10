@@ -1,0 +1,1616 @@
+       Common  Forth  Experiment  Version  1.665   User  Manual
+  ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+							Luke Lee
+							05/10/'96
+  ( This file is still under construction !!! )
+
+    ş  This software is distributed WITHOUT ANY WARRANTY.
+    ş  Read README.TXT for release notes.
+    ş  This manual is written for DJGPP versions, so if you try
+       to use Watcom C/C++ versions, please forgive me for all
+       the version inconsistency.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Operating  Basics
+ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+
+  ş  This system is Case-Sensitive !! This is all because of Chinese
+     Big-5 codes. 
+
+  ş  Do not press <CTRL>-<BREAK> or <CTRL>-<C> unless you have no other
+     way to quit system, this will abort system and discard any unsaved
+     information.
+
+  ş  Any command you typed in is called a 'WORD' in FORTH, each word is
+     delimited by a space character ( space bar ) .
+
+ ------------------------
+ I. Commonly used words :
+ ------------------------
+
+  WORDS    (( -- ))  Display all the available commands in this vocabulary .
+
+  ALLWORDS (( -- ))  Display complete command set in this vocabulary,
+		     including any INVISIBLE words which should not be used .
+
+  SEE <WordName>     Decompile <WordName> into source code .
+                     You must FLOAD SEE.4TH first.
+
+	  For example : FLOAD SEE.4TH
+                        SEE parse
+			SEE WORDS
+			SEE SEE
+
+  <SEE>	   (( code -- ))	Decompile an address .
+	  Example :
+			' WORDS <SEE>
+			'?KEY @ <SEE>
+
+  BYE      (( -- ))  Leave this system, return to DOS .
+
+  BYE'     (( -- ))  Terminate this system immediately, if BYE fails, use
+		     this instead.
+       <<  NOTE : If it still won't work, press <CTRL>-<BREAK> .  >>
+
+  CLS      (( -- ))  Clear screen .
+
+...............................................................................
+: NOTE : If your VGA system supports VESA BIOS, you should set the following  :
+:        environment variable before you enter CF system, otherwise the       :
+:        following DOS commands MIGHT crash your system, this bug is in       :
+:        GO32.EXE with its default VGA driver. Use VESA driver instead        :
+:        SHOULD fix this problem.                                             :
+:                                                                             :
+: SET GO32=driver f:/cf/vesadrv.vdr gw 640  gh 480  nc 256                    :
+:                                   ÄÄÂÄÄ-  ÄÄÂÄÄ-  ÄÄÂÄÄÄ-                   :
+:                                     ³       ³       ³                       :
+:                                     ³       ³       À default number of     :
+:                                     ³       ³         colors in graphics md.:
+:                                     ³       ³                               :
+:                                     ³       ÀÄ- default number of pixels of :
+:                                     ³           screen height in graphics md:
+:                                     ³                                       :
+:                                     ÀÄ- default number of pixels of screen  :
+:                                         width in graphics mode.             :
+: ( The maximum number of colors is 32768 )                                   :
+:.............................................................................:
+
+  DOS <DOS commands>
+	Shell to DOS, the first time might take a little longer since
+	program space is completely swap out to a disk file by GO32.
+
+	   For example : DOS  ...... shell to DOS, type EXIT to return
+			 DOS DIR /W
+			 DOS MSBACKUP
+			 DOS QBASIC
+			 DOS EDIT CF.INI
+			 DOS TYPE CF.INI
+
+     ş Available DOS commands are :
+
+	DIR  COPY  DEL  XCOPY  ECHO  MD  MKDIR  RD  RMDIR  CD  CHDIR
+	MEM  CHKDSK  TREE  PATH  RENAME  REN
+
+	<< Note 1 : The DOS command 'TYPE' cannot be used since 'TYPE' is
+		    a FORTH word with its own meaning.
+		    Use 'DOS TYPE ...' instead . >>
+	<< Note 2 : The parameter for commands must be delimited by a space
+		    like "DIR /W" but not "DIR/W" . >>
+
+  FLOAD  <filename>  Load a source program written in FORTH, extension name
+		     must also be typed in .
+
+	  For example : FLOAD DEMO_GRX.4TH
+			FLOAD DEMO_IFX.4TH
+			FLOAD DEMO_C.4TH
+			FLOAD 3DROTATE.SEQ
+			FLOAD 3DR.4TH
+
+  NEEDS  <filename>  If <filename> is not loaded, it will FLOAD it, otherwise
+		     nothing will happen, this word is used for preventing
+		     duplicated FLOAD .
+
+  UNLOAD <filename>  Unload a program , however, if it modified system vectors,
+		     THIS MIGHT CRASH YOUR SYSTEM !!!!
+
+  RELOAD <filename>  UNLOAD a program and FLOAD it again .
+
+  MULTI  (( -- ))    Multitasking mode, if any exception catched by this system
+		     ,system will be reset to single tasking mode, which will
+		     cause the cursor in graphics mode to disappear.
+
+  TEXT-MODE (( -- )) Switch display to 80x25 text mode, the display speed is
+		     faster since each character requires only 2 bytes .
+		     This facility is provided by GRAPHICS.4TH .        
+
+  GRAPHICS-MODE      Switch display and screen I/O to pure graphics mode, the
+		     display resolution is default in 640 x 480 x 16. You
+		     can change it by setting the GO32 environment variable
+		     described above, for example : 1024x768x256
+		     SET GO32 = driver f:/cf/vesadrv.vdr gw 1024 gh 768 nc 256
+		     and in FORTH do 
+			G1024x768x256 to GDefaultMode   GRAPHICS-MODE
+		     The display speed changes according to your resolution.
+
+ -----------------------
+ II. Keyboard commands :
+ -----------------------
+
+  The keyboard commands are similar to DOSKEY .
+
+  <ESC>       : Clear current command.
+
+  <Up> <Down> : Scroll the command histories .
+
+  <F7>        : Display command history .
+
+  <Alt-F7>    : Clear command history .
+
+  <Ctrl-Left> : Left one word .
+
+  <Ctrl-Right> : Right one word.
+
+  <Ctrl-End>  : Delete characters to end of line.
+
+  <Insert>    : Switch between inserting mode and replacing mode .
+
+  <Back space> : Delete the previous character .
+
+  <Delete>    : Delete the next character .
+
+  <Left> <Right> : Cursor movements, no need to explain.
+
+  <Enter>     : Enter your command.
+
+ -------------------------
+ III. Using CHINESE.4TH :
+ -------------------------
+ 0. There are a few user-controlled flags :
+
+	PreReadFonts?     Default value is FALSE, since this function
+			  takes a lot of memory, 
+	ChooseBestFont?   Default value is TRUE, it will choose the best
+			  font according to your selected resolution.
+			  If your default resolution is 1024x768, it will 
+			  choose 24x24 fonts.        
+	FONTSIZE          Accept only 15 or 24, is will be set to proper
+			  value if ChooseBestFont? is TRUE .
+	FONTTYPE          Apply to 24x24 fonts only, accept ASCII character, 
+			  'R' for STDFONT.24R , 'K' for STDFONT.24K ...
+
+ 1. Setting path of your ET3 :
+	Before you enter CF.EXE , set environment variable ET3 :
+   
+	  SET ET3=E:\ET3
+   
+	or the default path will be C:\ET3
+   
+ 2. Try this :
+    FLOAD CHINESE.4TH
+    FLOAD SAMPLES\DUMPFILE.4TH
+    DUMPFILE <filename>   ... dump a Chinese Big-5 coded text file.
+ 
+ 3. If you are now running Eten Chinese system and still wish to do graphics
+    works, then you MUST use CHINESE.4TH or your have to switch Eten to 
+    proper mode by your hand, otherwise your graphics works might disturb
+    Eten's Chinese displaying .
+  
+ 4. Used in turnkey systems :
+      Before you 'FSAVE', remember to 'CloseChinese' first, and your 
+      application startup code must execute 'OpenChinese' .
+   
+ 5. Some details :
+      a) OpenChinese  v.s.  CloseChinese
+      b) use 'ENGLISH' will back to ASCII character set.
+      c) use 'CHINESE' will enter Chinese character set.
+      d) Example :
+	  if you are using 1024x768, try the following :
+   
+	  FLOAD CHINESE.4TH     // default STDFONT.24
+	  FLOAD SAMPLES\DUMPFILE.4TH
+	  DUMPFILE <filename>   // Dump a BIG-5 coded Chinese file
+	  CloseChinese
+	  ASCII R TO FONTTYPE   // use STDFONT.24R
+	  OpenChinese
+	  DUMPFILE <filename>   // Dump a BIG-5 coded Chinese file
+   
+ 6. About Chinese Font cache :
+      OpenChineseCache .... default. Takes some virtual memory.
+			    The hit ratio is about 90% in average .
+      CloseChineseCache .... greatly reduce it's performance
+   
+ 7. Before you FLOAD CHINESE.4TH, define a word named 'statistics' will
+      enable Chinese Font Cache statistics , for example :
+      : statistics ;
+      FLOAD CHINESE.4TH
+      FLOAD SAMPLE\DUMPFILE.4TH
+      DUMPFILE <filename> ... Big-5 coded text file.
+      CACHE/STAT ......  display Chinese Font cache hit ratio.
+   
+ 8. Note that no font file have been pre-read into memory by default,
+    you can set
+	    TRUE to PreReadFonts?
+    and then CloseChinese OpenChinese , all fonts (except USRFONT) will
+    be loaded . However this takes up A LOT OF memory, in fact, VIRTUAL
+    memory. This will lift up the performance on cache miss.
+   
+ 9. For extra details, see CHINESE.4TH source code itself.
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Meta Compilation 
+ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+
+     The meta-compilation process is automatical; however, during the 
+     automatic meta-compiling process, you MUST NOT press any key, or it
+     might break the automatic process, in such situation, just do BYE' or
+     perform the compilation manually. 
+ 
+     You must use BYE' after you try meta, BYE won't work in such cases.
+
+     NOTE : Before you start meta-compilation, rename the CF.INI into other
+	    names or it will cause problems.
+
+     Detail steps ( for manual meta-compilation ) :
+	1. GO32 CF ................... ..... CF 1.6X, under MSDOS
+	2. FLOAD CFMETA.4TH ................ loading this meta compiler
+	3. AUTOMETA OFF .................... turn off autometa facility
+	4. META1 ........................... start meta compiling pass 1
+	5. FLOAD HI.4TH .................... after new system starts up
+	6. FLOAD CFMETA.4TH ................ same as step 1.
+	7. AUTOMETA OFF .................... same as step 3.
+	8. META2 ........................... meta compiling pass 2
+	9. FLOAD HI.4TH .................... for obtaining FSAVE ...etc.
+       10. FSAVE BYE' ...................... save image and quit. 
+					     Use BYE' not BYE  !!
+
+     Quick steps ( for automatic meta-compilation ) :
+	1. GO32 CF ......................... CF 1.6X, under MSDOS
+	2. FLOAD CFMETA  ................... steps 2,4,5,6,8,9.
+		< NOTE! Do not press any key until it stops and shows "ok" >
+	3. FSAVE BYE' ...................... step 10.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Creating Turnkey System
+ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+
+    See README.TXT for this .
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Including your C(++) Library : 
+ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+
+     This depends on what kind of C(++) compiler you use, this version is 
+  implemented by DJGPP ( GNU C for DOS ) + GO32 . So you must compile your
+  C source code under DJGPP :
+
+
+     1. Compile your C source code with DJGPP .
+     2. Register the function names and parameter description in EXTENDED.CC,
+	( not INVOKEC.CC, it is for ANSI C standard library . )
+     3. Modify MAKEFILE or CYCLE.BAT and then use MAKE or CYCLE.BAT to 
+	rebuild the loader 'CF.' ( Don't use BIND.BAT to bind it with 
+	GO32.EXE currently, since you havn't test your codes yet ) .
+     4. Run your new loader with command line "GO32 CF" and then
+	FLOAD INVOKEC.4TH , test your functions in FORTH.
+     5. After you have tested your C functions, use BIND.BAT to bind your 
+	new loader with GO32.EXE .
+     6. Keep your source codes yourself if you are not willing to release.
+
+     For Watcom C/C++ users, there is another version of loader for this. The 
+  Common Forth system itself is the same but only C interfaces are different.
+
+     The released version use PMODE for DOS Extender, you can change it with
+  Phar Lap's RUN386, but you cannot use DOS4GW since the memory map is 
+  different. However, if you know how to meta-compile this system, you could
+  meta-compile a new version for your need. Besides, the RUN386 version could
+  be executed under Windows's MSDOS session.
+
+     A version for DJGPP 2.0 is about to release, after DJGPP's out of beta.
+
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+   Brief  Summary
+ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+
+-----------------------------
+ş Frequently Used Constants :
+-----------------------------
+
+ TRUE  (( -- -1 ))
+ FALSE (( -- 0  ))
+ CELL  (( -- 4  ))
+ BL    (( -- 32 ))  Return 32, the blank character in ASCII code
+ LF    (( -- 10 ))  Return 10, Line feed character in ASCII code.       
+ NULL$ (( -- a ))   Return address of a null string with zero count.
+ NULL  (( -- 0 ))   Zero pointer .
+
+---------------------
+ş Memory Operations :
+---------------------
+
+CODE: !      (( w a -- ))   
+	      Pop the data stack to memory.
+CODE: H!     (( hw a -- ))  
+	      Pop the data stack to half-word ( 16bit ) memory.
+CODE: C!     (( c b -- ))   
+	      Pop the data stack to byte memory.
+    : 2!     (( d a -- ))   
+	      Store the double integer to address a.
+CODE: @      (( a -- w ))   
+	      Push memory location to the data stack.
+CODE: H@     (( a -- hw ))  
+	      Push halfword memory location to the data stack.
+CODE: C@     (( b -- c ))   
+	      Push byte memory location to the data stack.
+    : 2@     (( a -- d ))   
+	      Fetch double integer from address a.
+    : MOVE   (( from to count -- ))
+	      Move memory block with 'count' bytes, move from 'from' to 'to'.
+	      This word will determine the correct direction if 'from' and 'to'
+	      are overlapped.   
+    : CMOVE  (( from to count -- ))   
+	      Copy memory block 'count' bytes from 'from' to 'to'. 
+	      Direction : lower memory first.
+    : CMOVE> (( from to count -- )) 
+	      Copy memory block 'count' bytes from 'from' to 'to'. 
+	      Direction : higher memory first.
+    : FILL   (( addr count ch -- ))
+	      Fill 'count' bytes of character 'ch' to area beginning at 'addr'.
+    : ERASE  (( addr count -- )) Fill memory with zeros.
+	      Fill 'addr' with 'count' bytes of zero.
+    : OFF    (( adr -- ))   
+	      Clear the content of adr . ( Set to FALSE = 0 )
+    : ON     (( adr -- ))   
+	      Set the content of adr . ( Set to TRUE = -1 )
+    : +!     (( n addr -- ))  
+	      Add n to the contents at address addr.
+
+------------------------
+ş I/O Port fetch/store :
+------------------------
+
+CODE: PC@    (( addr -- byte ))   Fetch byte from port 'addr'
+CODE: PH@    (( addr -- byte ))   Fetch 16bit from port 'addr'
+CODE: P@     (( addr -- byte ))   Fetch 32bit from port 'addr'
+CODE: PC!    (( byte addr -- ))   Store byte to port 'addr'
+CODE: PH!    (( 16bit addr -- ))  Store 16bit to port 'addr'
+CODE: P!     (( 32bit addr -- ))  Store 32bit to port 'addr'
+
+--------------------
+ş Stack Operations :
+--------------------
+
+CODE: DUP   (( w -- w w ))              Duplicate the top stack item.
+CODE: DROP  (( w -- ))                  Discard top stack item.
+CODE: SWAP  (( w1 w2 -- w2 w1 ))        Exchange top two stack items.
+CODE: OVER  (( w1 w2 -- w1 w2 w1 ))     Copy second stack item to top.
+CODE: ROT   (( w1 w2 w3 -- w2 w3 w1 ))  Rot 3rd item to top. ( Rotate out )
+CODE: -ROT  (( w1 w2 w3 -- w3 w1 w2 ))  Rot top item to 3rd. ( Rotate in )
+CODE: NIP   (( w1 w2 -- w2 ))           Discard second of stack
+
+CODE: 2DUP  (( a b -- a b a b ))        Duplicate a double-precision item
+CODE: 2DROP (( n n -- ))                Drop a double-precision (64bit) item.
+    : 2SWAP (( a b c d -- c d a b ))
+    : 2OVER (( a b c d -- a b c d a b ))
+    : 2ROT  (( a b c d e f -- c d e f a b ))
+    : TUCK  (( n1 n2 -- n2 n1 n2 ))     
+
+CODE: PICK  (( ... +n -- ... w )) Copy the nth stack item to tos.
+CODE: 3DROP (( n n n -- ))       Drop three items on data stack.
+CODE: 4DROP (( n n n n -- ))     Drop four items on data stack.
+CODE: 5DROP (( n n n n n -- ))
+CODE: 6DROP (( n n n n n n -- ))
+CODE: 7DROP (( n n n n n n n -- ))
+CODE: 8DROP (( n n n n n n n n -- ))
+CODE: >R    (( w -- ))           Push top of data stack to the return stack.
+CODE: R@    (( -- w ))           Copy top of return stack to the data stack.
+CODE: R>    (( -- w ))           Pop the return stack to the data stack.
+CODE: RDROP (( -- ))             Drop top of return stack.
+    : ?DUP  (( w -- w w | 0 ))   Dup tos if its is not zero.
+
+---------------------------------
+ş Forth CPU Register Operations :
+---------------------------------
+
+CODE: RP@   (( -- a ))   Push the current RP to the data stack.
+CODE: RP!   (( a -- ))   Set the return stack pointer.
+CODE: SP@   (( -- a ))   Push the current data stack pointer.
+CODE: SP!   (( a -- ))   Set the data stack pointer.
+CODE: UP@   (( -- a ))   Pointer to the user area.
+CODE: UP!   (( a -- ))   Set user pointer to 'a'.
+
+---------------------------------------
+ş Logical operations ( bit operations )
+---------------------------------------
+
+CODE: NOT     (( w -- w ))     One's complement of TOS.
+CODE: AND     (( w w -- w ))   Bitwise AND.
+CODE: OR      (( w w -- w ))   Bitwise inclusive OR.
+CODE: XOR     (( w w -- w ))   Bitwise exclusive OR.
+CODE: =       (( w w -- t ))   Return true if top two are equal.
+CODE: <       (( n1 n2 -- t )) Signed compare of n1 and n2.
+CODE: >       (( n1 n2 -- t )) 
+    : <=      (( n1 n2 -- t ))
+    : >=      (( n1 n2 -- t ))
+    : <>      (( n1 n2 -- t ))
+CODE: U<      (( u1 u2 -- t )) Unsigned comparision of u1 and u2
+CODE: U>      (( u1 u2 -- t )) 
+    : U>=     (( u1 u2 -- t ))
+    : U<=     (( u1 u2 -- t ))
+CODE: 0<      (( n -- t ))   Return true if n is negative.
+CODE: 0=      (( n -- t ))   Return true if n is zero.
+CODE: 0<>     (( n -- t ))   Return true if n is not zero.
+CODE: 0>      (( n -- f ))   Return true if n is positive.
+    : 0>=     (( n -- t ))   Return true if n>=0
+    : 0<=     (( n -- t ))   Return true if n<=0
+    : [...]   (( n l h -- t ))  TRUE if l <= n <= h ( signed comparsion )
+    : [...)   (( n l h -- t ))  TRUE if l <= n <  h ( signed comparsion )
+    : (...]   (( n l h -- t ))  TRUE if l <  n <= h ( signed comparsion )
+    : (...)   (( n l h -- t ))  TRUE if l <  n <  h ( signed comparsion )
+    : BETWEEN (( N LO HI -- T/F )) Same as [...]
+    : WITHIN  (( u ul uh -- t )) Unsigned comparsion, return TRUE if u is 
+	      within the range of ul and uh. ( ul <= u < uh )
+
+-------------------------
+ş Arithmetic Operations :
+-------------------------
+
+CODE: NEGATE    (( n -- -n ))     
+		 Two's complement of tos.
+    : DNEGATE   (( d -- -d ))
+		 Two's complement of a double integer.
+CODE: SGN    (( n -- -1/0/1 ))
+	      Get the sign of n.
+    : ABS    (( n -- n ))      
+	      Return the absolute value of n.
+CODE: UM+    (( u u -- udsum ))  
+	      Add two unsigned single numbers and return a double sum.
+CODE: UM*    (( u u -- ud )) 
+	      Unsigned multiply. Return double product.
+CODE: UM/MOD (( udl udh un -- ur uq ))
+	      Unsigned divide of a double by a single. Return mod and quotient.
+CODE: +      (( n1 n2 -- n1+n2 )) 
+	      Add top two items.
+CODE: -      (( n1 n2 -- n1-n2 )) 
+	      Subtraction.
+CODE: *      (( n1 n2 -- n ))  
+	      Return n1*n2.
+CODE: /      (( n1 n2 -- q ))  
+	      Return only quotient of (n1/n2)
+CODE: MOD    (( n1 n2 -- r ))  
+	      Return only remainder of (n1/n2)
+    : D+     (( d1 d2 -- d3 )) 
+	      Add two double integers.
+    : M/MOD  (( d n -- r q ))  
+	      Floored division, divide a double precision number with a 
+	      single precision number.
+    : /MOD   (( n1 n2 -- r q )) 
+	      Return remandier/quotient of (n1/n2)
+    : M*     (( n1 n2 -- d ))   
+	      Return (n1*n2) with double precision.
+    : */MOD  (( n1 n2 n3 -- r q ))  
+	      r,q are remainder/quotient of (n1*n2/n3)
+    : */     (( n1 n2 n3 -- q )) 
+	      Return only quotient of (n1*n2/n3)
+CODE: CELL+  (( a -- a+4 ))   
+	      Add cell size in byte to address.
+CODE: CELL-  (( a -- a-4 ))   
+	      Subtract cell size in byte from address.
+CODE: CELL*  (( n -- n*4 ))   
+	      Multiply tos by cell size in bytes.
+CODE: CELL/  (( n -- n/4 ))   
+	      Shift tos 2 bits rightward.
+CODE: 1+     (( n -- n+1 ))   
+	      Increase TOS by 1 .
+CODE: 1-     (( n -- n-1 ))   
+	      Decrease TOS by 1 .
+CODE: 2*     (( N -- n*2 ))   
+	      Shift tos 1 bit leftward.
+CODE: U2/    (( N -- n/2 ))   ( Change sign if negative. )      
+	      Shift tos 1 bit rightward logically. 
+CODE: 2/     (( N -- n/2 ))   ( Keep sign bit the same. )
+	      Shift tos 1 bit rightward arithmatically. 
+CODE: 256*   (( n -- n*256 )) 
+	      Shift TOS 8 bits leftward.
+CODE: U256/  (( u -- u/256 )) ( Change sign if negative. )      
+	      Shift TOS 8 bits leftward logically.
+CODE: 256/   (( n -- n/256 )) ( keep sign bit the same. )
+	      Shift TOS 8 bits leftward arithmatically.
+    : MAX    (( n1 n2 -- n )) 
+	      Return the greater one of n1 and n2.
+    : MIN    (( n1 n2 -- n )) 
+	      Return the smaller one of n1 and n2.
+
+------------------------
+ş Basic Text I/O Words :
+------------------------
+
+: CLS    (( -- ))  
+	  Clear screen.
+: AT?    (( -- col_x row_y ))  
+	  Return current cursor position.
+: AT     (( col_x row_y -- ))  
+	  Set current cursor position.
+: ?KEY   (( -- c T | F ))      
+	  Return input character and true, or a false if no input.
+: KEY    (( -- c ))           
+	  Wait for and return an input character.
+: EMIT   (( c -- ))            
+	  Send a character to the output device.
+: SPACE  (( -- ))             
+	  Emit a BL character.
+: BEEP   (( -- ))       
+	  Make a beep. ( Send an ASCII 7 )
+: CR     (( -- ))     
+	  Send a carrage return character.
+: EXPECT (( buf len -- )) 
+	  Accept input stream and store count in SPAN.
+: QUERY  (( -- )) 
+	  Accept input stream to terminal input buffer.
+: SPACES (( +n -- )) 
+	  Emit 'n' BL characters.
+: NUF?   (( -- F ))             
+	  Return TRUE and wait for next keystroke if any key pressed,
+	  otherwise return FALSE.
+: TAB    (( -- )) 
+	  Emit spaces and advance current cursor position to multiples of eight.
+: TYPE   (( buf count -- ))    
+	  Display the content of 'buf' with 'count' characters.
+: .      (( n -- ))
+	  Display a signed number at current cursor position.
+: U.     (( u -- ))
+	  Display an unsigned number at current cursor position.
+: .H     (( n -- ))
+	  Display a signed number in hexadecimal at current curosr position.
+: U.H    (( n -- ))
+	  Display an unsigned number in hexadecimal at current cursor position.
+: .R     (( n +n -- ))
+	  Display a signed number 'n' with '+n' characters with right adjustment.
+: U.R    (( u +n -- ))
+	  Similar to .R but with unsigned output.
+: U.0R   (( n +n -- ))
+	  Similar to U.R but with zeros leading.
+: .(     (( -- )) < Interpreting mode >
+	  Display text string in interpreting mode, text string terminated with
+	  a character ')'.
+: ."     (( -- )) < Compiling mode >
+	  Compile text string into dictionary, display text string at run-time,
+	  The text string is terminated with a character '"'.
+: ?      (( addr -- )) @ . ;
+	  Display the content of 'addr'.
+
+----------------------------------------------
+ş String/Number Conversion, single precision :
+----------------------------------------------
+
+: DECIMAL  (( -- ))
+	   Set current convertion base to decimal. This is the default.
+: HEX      (( -- ))
+	   Set current convertion base to hexadecimal.
+: BINARY   (( -- ))
+	   Set current convertion base to binary.
+: NUMBER?  (( adr -- d T / n T / adr F ))
+	   Convert a counted string 'adr' to number. 
+: str      (( w -- buf count )) 
+	   Convert a number to a string at 'buf' with length 'count' .
+: <#       (( -- )) 
+	   Initiate the numeric output process.
+: HOLD     (( c -- )) 
+	   Insert a character into the numeric output string.
+: #        (( u -- u )) 
+	   Extract one digit from u and append the digit to output string.
+: #S       (( u -- 0 )) 
+	   Convert u until all digits are added to the output string.
+: SIGN     (( n -- )) 0< IF ASCII - HOLD ENDIF ; 1 0 #PARMS
+	   Hold a sign character '-' if n < 0.
+: #>       (( w -- b u ))
+	   End convertion procedure, return a string with address at 'b' and
+	   length with 'u'.
+: DIGIT    (( u -- c )) 
+	   Convert digit u to a character.
+
+---------------------
+ş String Operations :
+---------------------
+
+    : COUNT  (( b -- b+1 +n )) Convert counted string to string and length.
+	      Return count byte of a string and add 1 to byte address.
+    : $"     (( -- )TIB: <string> ) Runtime : (( -- addr ))
+	      Compile an inline string literal. Return the address of 
+	      a counted string at 'addr', use COUNT to TYPE it.
+    : "      (( -- )TIB: <string> ) Runtime : (( -- string length ))
+	      Compile an inline string literal. Return string and length
+	      of this inline string literal at run-time.
+    : Z$"    (( -- )TIB: <string> )  Runtime : (( -- addr ))
+	      Compile an counted ASCIIZ string. Return the address of
+	      a zero-ended counted string.
+    : $=     (( CSTR1 CSTR2 -- T/F ))
+	      Compare two counted string, check whether they are the same.
+    : $+     (( target$ src len -- target$ )) Concat strings .
+	      Concat source string into a counted-string
+	      Note that target$ buffer must be large enough
+		target$ : counted string
+		src : source string address ( not including the count byte )
+		len : the length to concat
+CODE: COMP   (( S D len -- flag )) 
+	      Compare two string with len bytes, 
+	      flag<0 if S<D,  flag=0 if S=D,  flag>0 if S>D, you can use
+	      'SGN' to convert them into -1/0/1.
+    : -TRAILING  (( b u -- b u ))
+	      Adjust the count to eliminate trailing white space.
+
+    : PACK$  (( b u a -- a ))
+	      Build a counted string with 'u' characters from 'b' at 'a'. 
+	      Null fill. Also put a trailing zero to build an ASCIIZ sting.
+
+-------------------------------------------------
+ş Define Named Data Objects / Memory Allocation :
+-------------------------------------------------
+
+: ALLOT     (( n -- ))  
+	     Allocate n bytes to the code dictionary.
+: CREATE    (( -- )TIB: <name> )
+	     Create a buffer and named it as <name>.
+	     Ex : create a 4K buffer and named it as Buffer
+	       CREATE Buffer  4096 ALLOT
+: "CREATE   (( string length -- ))
+	     Create a buffer with name specified with 'string' and 'length'.
+	     Ex : create a 4K buffer and named it as Buffer
+	       : CreateBuf   " Buffer"  "CREATE 4096 ALLOT   ;
+: VARIABLE  (( -- )TIB: <name> )
+	     Compile a new variable initialized to 0. And named it as '<name>'
+: CONSTANT  (( n -- )TIB: <name> )
+	     Create a constant with name '<name>'.
+: 2VARIABLE (( -- )TIB: <name> )
+	     Compile a new double-precision variable initialized to 0. 
+	     And named it as '<name>'
+: ARRAY:    (( cell_size #cells -- )TIB: <name> -- )
+	     Create an array with '#cells' items, each item takes 'cell_size'
+	     bytes. This array is initialized by zeros.
+	     Ex : create a 50 entry string buffer, each string has 10 bytes.
+	       10 50 ARRAY:  []StringBuf
+	       : InitStrBuf 
+		    50 0 DO   #I []StringBuf  " abcdefg" $+ DROP    LOOP ;
+: DOES>     (( -- )) Runtime : (( ... pfa -- ... ))
+	     Define the run-time behavior of the CREATEd name.
+
+--------------------------------
+ş FORTH VCPU Code Flow Control :
+--------------------------------
+
+CODE: EXECUTE   (( ca -- )) 
+	Execute the word at ca.
+CODE: @EXECUTE  (( a -- )) 
+	Execute vector stored in address a.
+CODE: trap      ((      EBP EDI ESI EDX ECX EBX EAX int#  
+		     -- EBP EDI ESI EDX ECX EBX EAX flag  ))
+	System call, a standard interface for software interrupts.
+	However, this word is CPU dependent .
+
+  Other VCPU branching instructions like ?BRANCH and BRANCH are generated
+  by the following structure control words .
+
+---------------------------
+ş Structure Control Words :
+---------------------------
+
+ * The following words are all immediate words .
+
+: IF      (( )runtime : T/F -- ) 
+	   Begin a conditional branch structure.
+: ELSE    (( )runtime : -- )
+	   Start the false clause in an IF-ELSE-ENDIF structure.
+: ENDIF   (( )runtime : -- )
+	   Terminate a conditional branch structure.
+
+: FOR     (( )runtime : n -- )
+	   Start a FOR-NEXT loop structure in a colon definition.
+: NEXT    (( )runtime : -- )
+	   Terminate a FOR-NEXT loop structure.
+: AFT     (( )runtime : -- )
+	   Jump to THEN in a FOR-AFT-THEN-NEXT loop the first time through.
+: THEN    (( )runtime : -- )
+	   Terminate a conditional branch structure, in fact, it is an
+	   alias name of ENDIF, but when used in stack expression, they
+	   are definite different.
+
+: BEGIN   (( )runtime : -- )
+	   Start an infinite or indefinite loop structure.
+: WHILE   (( )runtime : T/F -- )
+	   Conditional branch out of a BEGIN-WHILE-REPEAT loop.
+: REPEAT  (( )runtime : -- )
+	   Terminate a BEGIN-WHILE-REPEAT indefinite loop.
+: UNTIL   (( )runtime : T/F -- )
+	   Terminate a BEGIN-UNTIL indefinite loop structure.
+: AGAIN   (( )runtime : -- )
+	   Terminate a BEGIN-AGAIN infinite loop structure.
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * CASE structure :
+     <n> CASE 
+	 <m1> OF ... ENDOF 
+	 <m2> OF ... ENDOF
+	 ...  // no need to drop , ENDCASE will do this for you.
+     ENDCASE
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+: CASE    (( )Runtime : n -- )
+	   Begin CASE ... OF ... ENDOF ... ENDCASE control structure
+: OF      (( )Runtime : n -- )
+	   Begin a OF ... ENDOF statement .     
+: ENDOF   (( ))
+	   Terminate a OF ... ENDOF statement.  
+: ENDCASE (( ))
+	   Terminate a CASE ... ENDCASE statement.
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Short-Cut Boolean Evaluation Control Structure :
+   Syntax :
+
+     1. Full boolean evaluation :
+	  A B >   C D <   AND  E F =  AND
+	Short cut boolean evaluation :
+	  A B >  ANDTHEN  C D <   ANDTHEN   E F =  THEN-AND
+
+     2. Full boolean evaluation :
+	  A B >   C D <   OR  E F =   OR
+	Short cut boolean evaluation :
+	  A B >  ORELSE   C D <   ORELSE    E F =  ELSE-OR
+
+     3. Mixing two structure :
+	 Full boolean evaluation :
+	   A B AND C AND D AND   E F OR G OR    AND
+	 Short cut boolean evaluation :
+	   A ANDTHEN B ANDTHEN C ANDTHEN D ANDTHEN
+	       E ORELSE F ORELSE G ELSE-OR
+	   THEN-AND
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+: ANDTHEN  (( runtime : T/F -- ))
+	A shortcut point in ANDTHEN ... ANDTHEN ... THEN-AND structure,
+	branch to THEN-AND when T/F is FALSE .
+
+: THEN-AND (( runtime : -- T/F ))
+	The terminate point in ANDTHEN ... THEN-AND structure.
+	Return the result of the shortcut boolean evaluation.
+
+: ORELSE   (( runtime : T/F -- ))
+	A shortcut point in ORELSE ... ORELSE ... ELSE-OR structure,
+	branch to ELSE-OR when T/F is TRUE .
+
+: ELSE-OR  (( runtime : -- T/F ))
+	The terminate point in ORELSE ... ELSE-OR structure.
+	Return the result of the shortcut boolean evaluation.
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * DO ... LOOP structure :
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+: #I      (( -- current_loop_index )) 
+	   Loop index value for either FOR ... NEXT or DO ... LOOP .
+: #J      (( -- inner_loop_index ))
+	   Outer loop index for nesting DO ... LOOP structure .
+: #K      (( -- third_loop_index ))
+	   Third outer loop index for nesting DO ... LOOP structure .
+: DO      (( runtime : limit start -- ))
+	   Begin of DO ... (+)LOOP structure.
+: ?DO     (( runtime : limit start -- ))
+	   Begin of ?DO ... (+)LOOP structure.
+	   Skip this loop if 'start' = 'limit' .
+: LOOP    (( runtime : -- ))
+	   Loop back .
+: +LOOP   (( runtime : inc -- ))
+	   Add loop index by 'inc' and check for loop back.
+: LEAVE   (( runtime : -- ))
+	   Leave current loop immediately.
+: ?LEAVE  (( runtime : T/F -- ))
+	   If T/F flag is true, leave current loop.
+
+: #REPEATS: (( n -- ))  < my creation >
+	  Execute the codes between '#REPEATS:' and ';' for 'n' times.
+	  Ex1: 
+	      : TEST  10 #REPEATS: 1 2 + . ;  <enter>
+	      TEST  <enter>
+	      3 3 3 3 3 3 3 3 3 3 3 ok
+	  Ex2:
+	      : TEST  #REPEATS: 2 + DUP . ; <enter>
+	      10 5 TEST   <enter>
+	      12 14 16 18 20 ok
+	      . <enter> 
+	      20 ok
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Conditional Compilation :
+
+    1. #IF  ...  #ELSE  ...  #ENDIF
+    2. #DEFINED  :  defined in CONTEXT ?
+    3. #NOTDEFINED : not defined in CONTEXT ?
+    4. #EXISTED  :  exist in any vocabulary ?
+    5. There is no '#DEFINE' since colon DEFINitions are defining words.
+    6. #UNDEFINE : Corrupt it's name to make it un-searchable. Don't use
+		   this if possible.
+
+    Examples 
+      Ex1 : Used in interpreting mode.
+	: SYMBOL1 ;
+	#DEFINED SYMBOL1   #DEFINED SYMBOL2  AND  #IF
+	     .( SYMBOL1 and SYMBOL2 Both exists )
+	#ELSE
+	     .( Either SYMBOL1 or SYMBOL2 not defined )
+	#ENDIF
+
+      Ex2 : Used in compiling mode.
+	: Speed-Oriented-Word
+	  [ 386? ] #IF
+	     386-CODES
+	  #ELSE [ 486? ] #IF
+	     486-OPTIMIZED-CODES
+	  #ENDIF #ENDIF  ;
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+
+--------------------------
+ş  MS-DOS/BIOS Interface
+--------------------------
+
+ *  Three Modes for HOPEN , FOPEN
+
+      READ/ONLY   = 000 (binary) 
+      WRITE/ONLY  = 001
+      READ/WRITE  = 010 
+
+     These 3 constants are consistent with MS-DOS system call $3D access 
+     modes. If you have installed SHARE.EXE in your system, you must define
+     the access modes it provided youself.
+
+ *  Modes for HSEEK , move file pointer
+      SEEK_SET = 0 : relative to begin of file .
+      SEEK_CUR = 1 : relative to current file pointer.
+      SEEK_END = 2 : relative to end of file.
+
+    : HCLOSE    (( handle -- T/F ))
+	Close a file, flush file buffer.
+    : HREAD     (( buffer bytes handle -- bytes-read T / err-code F ))
+	Read file at current file pointer, read 'bytes' into 'buffer'.
+    : HWRITE    (( buffer bytes handle -- bytes-written T / err-code F ))
+	Write a file at current file pointer, write 'bytes' of the 
+	contents of 'buffer' .
+    : HSEEK     (( mode offset handle -- file_pointer T / err-code F ))
+	Move file pointer according to 'mode' and 'offset', offset can
+	be a positive value or negative value.
+	'mode' = SEEK_SET, SEEK_CUR or SEEK_END.
+    : OPEN      (( fname-str fname-len mode -- handle True / err-code False ))
+	Open a EXISTED file with "mode", with a FORTH string. It can be used
+	to detect whether a file is existed or not.
+    : FOPEN     (( fname-str fname-len mode -- handle True / err-code False ))
+	If file already exists, open it with 'mode' ; otherwise create 
+	a new file .
+    : HERROR$       (( err-code -- str len ))
+	Convert MS-DOS error code to a message string, you could use TYPE
+	to display it.
+
+ ** Generally, the following three words are not necessary. **
+
+    : HCREATE   (( fattr asciiz-adr -- handle True / err-code False ))
+	MS-DOS function call $3C .
+	Create a file no matter this file has been existed or not.
+	fattr = 0 : normal , 1 : read-only, 2 : hidden, 4 : system .
+    : HOPEN     (( mode asciiz-adr -- handle True / err-code False ))
+	MS-DOS function call $3D .
+	Open a existing file with READ/ONLY , WRITE/ONLY or READ/WRITE mode.
+	But for file name, it MUST BE an ASCIIZ string.
+    : READLN (( buffer handle -- bytes-read T / err-code F )) 
+	 A very slow file reading routine, read one text line into 'buffer',
+	 one character at a time.
+
+------------------------------------------
+ş FORTH System Memory Access and Parsing :
+------------------------------------------
+
+: HERE    (( -- addr )) 
+	   Return the top of the code dictionary.
+: PAD     (( -- addr ))
+	   Return the address of the text buffer above the code dictionary.
+: TIB     (( -- addr )) 
+	   Return the address of the current terminal input buffer.
+: WORD    (( c -- here )TIB: <string> )
+	   Parse a word from input stream and copy it to code dictionary.
+	   ( put it HERE .)
+: TOKEN   (( -- addr )TIB : <string> )
+	   Parse a word from input stream and copy it to name dictionary.
+: "TOKEN  (( b u -- addr ))
+	   Copy a string into name dictionary.
+: //      (( -- ))
+	   Treate the following as comment, till end of line.
+: ((      (( -- ))
+	   Comments all things inside two right paren ')' .
+: ASCII   (( compile time : -- )TIB: char )
+	  (( runtime : -- c ))  Where c is the 'char' in compile time.
+
+------------------
+ş Error Handling :
+------------------
+
+: ABORT   (( -- ))
+	   Reset data stack and jump to QUIT.
+: ABORT"  (( Runtime : T/F -- )TIB: <string>" )
+	   Conditional abort with an error message. Abort if T/F flag is
+	   TRUE .
+: CATCH   (( ca -- 0 | err# ))
+	   Execute word at ca and set up an error frame for it.
+: THROW   (( err# -- )CATCH: -- err# )
+	   Reset system to current local error frame an update error flag.
+
+-------------------------------
+ş Standard Graphics Interface :
+-------------------------------
+
+: GRAPHICS-MODE (( -- ))
+	Enter graphics mode, according to current value of 'GDefaultMode'.
+	It's default value is G640x480x16
+	Ex. G1024x768x256 to GDefaultMode
+	    GRAPHICS-MODE
+: TEXT-MODE     (( -- ))
+	Return to text mode if in graphics mode.
+: VIDEO-MODE	(( -- ))
+	Execute GRAPHICS-MODE or TEXT-MODE according to GDefaultMode .
+: GCurrentMode  (( -- m ))
+	Get current mode, 0 = text-mode, otherwise GWidthxHeightxColor
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * User Controlled Values, these values must be setup before GRAPHICS-MODE
+     GDefaultMode
+     GUseDefaultFont?   Generally this value is not needed for user.
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Eight Constants for GDefaultMode
+     G320x200x16                G320x200x256
+     G640x480x16                G640x480x256
+     G800x600x16                G800x600x256
+     G1024x768x16               G1024x768x256
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * 16 Color Constants
+     G_BLACK
+     G_BLUE   
+     G_GREEN   
+     G_CYAN   
+     G_RED   
+     G_MAGENTA   
+     G_BROWN   
+     G_LIGHTGRAY   
+     G_DARKGRAY   
+     G_LIGHTBLUE   
+     G_LIGHTGREEN  
+     G_LIGHTCYAN   
+     G_LIGHTRED   
+     G_LIGHTMAGENTA
+     G_YELLOW   
+     G_WHITE
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Constants for GPutImage operation :
+     G_COPY_PUT ( must have )
+     G_XOR_PUT  ( must have )
+     G_AND_PUT
+     G_OR_PUT
+     G_NOT_PUT  ( optional )
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Basic Graphics Words :
+: GraphicsMode?   (( -- T/F ))
+		   Is it in graphics mode now ?
+ -- There are two set of drawing words, one is color parameterred . --
+: GDrawCPoint     (( x y color -- ))
+		   Draw a colorred point at screen coordinate (x,y).
+: GDrawCLine      (( x0 y0 x1 y1 color -- ))
+		   Draw a colorred line from (x0,y0) to (x1,y1)
+
+ -- There are at most two coordinate pairs in rectangle drawing/filling --
+ --                   (x0,y0)                                           --
+ --                      ÚÄÄÄÄÄÄÄÄÄÄÄÄÄ¿                                --
+ --                      ³             ³                                --
+ --                      ³             ³                                --
+ --                      ³             ³                                --
+ --                      ÀÄÄÄÄÄÄÄÄÄÄÄÄÄÙ                                --
+ --                                 (x1,y1)                             --
+
+: GDrawCRectangle (( x0 y0 x1 y1 color -- ))
+		   Draw a colorred rectangle with upper-left point at (x0,y0)
+		   and lower-right point at (x1,y1) .
+: GFillCRectangle (( x0 y0 x1 y1 color -- ))
+		   Same as GDrawCRectangle but filled with 'color' inside.
+		   ( not patternned filling. )
+: GSetColor       (( color -- ))
+		   Set current drawing color.
+: GGetColor       (( -- color ))
+		   Get current color setting.
+: GDrawPoint      (( x y -- ))
+		   Draw a point at (x,y) with current color .   
+: GDrawLine       (( x0 y0 x1 y1 -- ))
+		   Draw a line from (x0,y0) to (x1,y1) with current color.
+: GDrawRectangle  (( x0 y0 x1 y1 -- ))
+		   Draw a rectangle with upper-left point at (x0,y0) and
+		   lower-right point at (x1,y1) .
+: GFillRectangle  (( x0 y0 x1 y1 -- ))
+		   Same as GDrawRectangle but filled with current color.
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Image operation words :
+: GImageSize      (( x0 y0 x1 y1 -- n ))
+		   Image buffer size with rectangle (x0,y0) and (x1,y1)
+: GGetImage       (( left top right bottom *image -- ))
+		   Get image into buffer '*image'.
+: GPutImage       (( left top *image operation -- ))
+		   Put '*image' at (left,top) with 'operation' ,
+		   operation = G_COPY_PUT, G_XOR_PUT, G_AND_PUT, G_OR_PUT,
+			       or G_NOT_PUT .
+: GMoveImage      (( destX destY srcX0 srcY0 srcX1 srcY1 -- ))
+		   Move a image with rectangle (srcX0,srcY0)-(srcX1,srcY1)
+		   to (destX,destY) .
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Read Graphics Region/size
+: GSizeX          (( -- SizeX ))
+		   Screen width of current graphics resolution, should be 
+		   consistent with GDefaultMode .
+: GSizeY          (( -- SizeY ))
+		   Screen height of current graphics resolution, should be 
+		   consistent with GDefaultMode .
+: GMaxX           (( -- MaxX ))
+		   Maximum value of X-coordinate . Should be GSizeX-1.
+: GMaxY           (( -- MaxY ))
+		   Maximum value of Y-coordinate . Should be GSizeY-1.
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+VARIABLE GScrolling   A variable for storing a flag, control whether
+		      text scrolling or not. Not always work in all systems.
+DEFER GDrawASCII  (( char -- ))
+		   Draw an ASCII character at current cursor position,
+		   a deferred word which could be defined by user.
+: GOutChar        (( x0 y0 char -- ))
+		   Draw a character 'char' at (x0,y0), used by GDrawASCII
+		   GUseDefaultFont? is FALSE.
+ * Text colors : there are duplicates, just for your convience.
+: GGetForeColor   (( -- fgcolor ))
+		   Get current foreground color of text setting .
+: GGetBackColor   (( -- bgcolor ))
+		   Get current foreground color of text setting .
+: GGetTextColor   (( -- fgcolor bgcolor ))
+		   Get current color setting for both foreground and background
+		   colors.
+: GSetForeColor   (( fgcolor -- ))
+		   Set foreground color of text.
+: GSetBackColor   (( bgcolor -- ))
+		   Set background color of text.
+: GSetTextColor   (( fgcolor bgcolor -- ))
+		   Set colors for both foreground and background.
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+ * Text range : You can display text in one region and graph in anohter
+		region, the following two words help you do this.
+: GGetScrollRange (( -- X0 Y0 X1 Y1 #col #row ))
+		   Get current setting of text scrolling window range :
+		   (x0,y0)-(x1,y1) in '#col' columns and '#row' rows.
+: GSetScrollRange (( X0 Y0 X1 Y1 #col #row -- ))
+		   Change current setting of text scrolling window.
+
+STRUCT: GTextInfo:   A data structure for GSaveTextInfo or GRestoreTextInfo
+
+: GSaveTextInfo     (( GTextInfo^ -- ))
+		     Save current text settings like cursor shape,scroll range
+		     foreground/background colors...
+: GRestoreTextInfo  (( GTextInfo^ -- ))
+		     Restore text settings info stored in 'GTextInfo^' which
+		     is previously setup by GSaveTextInfo.
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+: G_HideCursor    (( -- ))
+		   Hide cursor temporary, it still blinks next time, this
+		   word is widely used internally. Since the cursor is 
+		   emulated by image, it should be sometimes hidden.
+: G_NormCursor    (( -- ))
+		   Set cursor shape to normal size.
+: G_BigCursor     (( -- ))
+		   Set cursor shape to biggest size.
+: G_HalfCursor    (( -- ))
+		   Set cursor shape to a half of biggest one.
+: GCursorOFF      (( -- ))
+		   Turn off cursor emulation.
+: GCursorON       (( -- ))
+		   Turn on cursor emulation.
+: GCursorState    (( -- T/F ))
+		   Return TRUE if cursor emulation is ON.
+: GCursor>Coord   (( col_x row_y -- x y ))
+		   Convert (column,row) position to screen coordinates.
+: GCursor++       (( -- ))
+		   Increment cursor position by one. If 'GScrolling' is ON,
+		   this will cause text scrolling if cursor is currently
+		   at right-bottom corner.
+: GCursor+!       (( n -- ))
+		   Increment cursor position by 'n', either positive or 
+		   negative value.
+: GCursor--       (( -- ))
+		   Decrement cursor position by one.
+: GCursor-!       (( n -- ))
+		   Similar to GCursor+! but it use substraction operation.
+: GCursor@        (( -- loc ))
+		   Get current cursor position .
+: GCursor!        (( n -- ))
+		   Set current cursor position . Ex.  0  GCursor! .
+: GWouldScroll?   (( +value -- T/F ))
+		   Test whether cursor increment by +value (must be positive)
+		   would cause text scrolling or not. Used internally.
+
+ - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - 
+: GInitialize     (( video_mode #columns #rows -- ))
+		   Called by GRAPHICS-MODE, user shouldn't use it unless
+		   you want to modify GRAPHIS.4TH .
+: GUninitialize   (( -- ))
+		   Called by TEXT-MODE, user shouldn't use this either.
+
+----------------------------------
+ş Frequently used user variables :
+----------------------------------
+
+  Note that user variables cannot be setup by 'TO' or 'IS' or '=>', it can 
+  be access only by '!' and '@'
+
+: SP0           Pointer to bottom of the data stack.
+: RP0           Pointer to bottom of the return stack.
+: '?KEY         Execution vector of ?KEY.
+: 'EMIT         Execution vector of EMIT.
+: 'EXPECT       Execution vector of EXPECT.
+: 'PROMPT       Execution vector of PROMPT.
+: SPAN          Hold character count received by EXPECT.
+: >IN           Hold the character pointer while parsing input stream.
+: #TIB          Hold the current count in and address of the terminal input buffer.
+: 'TIB          Hold the base address of the terminal input buffer
+: 'NUMBER       Execution vector of NUMBER?.
+: CONTEXT       A area to specify vocabulary search order.
+: CURRENT       Point to the vocabulary to be extended.
+: VOC-LINK      Vocabulary link pointer.
+: CP            Point to the top of the code dictionary.
+: HP            Point to the bottom of the head dictionary.
+: LAST          Point to the last name in the name dictionary.
+: STATE         TRUE for compiling mode and FALSE for interpreting mode.
+: DPL           Double precision number .
+: 'TYPE         Reverse link to task's head
+: 'AT           Vector for AT
+: 'AT?          Vector for AT?
+
+  In multitasking environment, if you want every task have its own task
+  variable, use USERVAR to define it, and every task will reserve this 
+  space for that variable.
+
+--------------------------
+ş Using Stack Expression :
+--------------------------
+
+ Syntax :
+
+ Example 1. Two input parameters, one output parameter
+   : f (| in1 in2 -- out |) ... ;
+
+ Example 2. Two input parameters, no outputs
+   : f (| in1 in2 -- |) ... ;
+
+ Example 3. No inputs, two output parameters
+   : f (| -- out1 out2 |) ... ;
+
+ Example 4. Three inputs, two locals and 2 outputs
+ : f (| in1 in2 in3 | local1 local2 -- out1 out2 |)
+       in1 in2 + >> local1
+       local1 in3 * >> out1
+       ... ;
+
+ Note:   With | present but no local variables defined, the syntax is still
+	 valid. Ex.   : f (| in1 in2 | -- out |) ... ;
+
+ Example 5     CREATE .. DOES> ...
+       Note : The parameters between ':' to 'DOES>' are unknown for
+	      codes between 'DOES>' to ';' .
+  Ex 5.1
+ : f (| in1 -- |)
+       CREATE
+	 in1 ,
+       DOES> (| pfa -- |)  // There MUST have at least one parameter
+	 pfa @ . ;         // representing PFA
+
+  Ex 5.2
+ : TEST (| in1 -- |)
+       CREATE
+	in1 ,
+       DOES> (| a b c pfa -- |)
+	pfa @ . c . b . a . ;
+ 4 TEST newword ok
+ 1 2 3 newword 4 3 2 1 ok
+
+  For their real examples, refers to FIB.4TH , HANOI.4TH , KEYBUF.4TH 
+  and DEMO*.4TH .
+
+ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ
+  Assembly Programming
+ÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ
+
+1. This assembler CPU80486.4TH is a fully implemented 486 assembler for
+   both 16bit instructions and 32bit instructions, ( 16bit instructions
+   have not been fully tested yet, so be careful ), use 'USE16' and CPU80486    
+   will generate 16bit instructions, use 'USE32' (default) will generate
+   32bit instructions.
+
+2. Target memory operations :
+    This assembler also provide a flexible way to lay down your target codes
+    in the way you like, the target memory is defaultly inside current FORTH 
+    system ( which means HERE ), for portability's sake, I define them as
+    all in variables .
+
+      VARIABLE THERE-VECTOR   // execution vector of Target memory HERE
+      VARIABLE TC,-VECTOR     // execution vector of Tagert memory C,
+      VARIABLE T@-VECTOR      // execution vector of Target memory @
+      VARIABLE T!-VECTOR      // execution vector of Target memory !
+      VARIABLE TH@-VECTOR     // execution vector of Target memory H@
+      VARIABLE TH!-VECTOR     // execution vector of Target memory H!
+      VARIABLE TC@-VECTOR     // execution vector of Target memory C@
+
+3. About CODE: ... ;CODE  :
+    Define your code words with this structure .
+    Syntax :
+      CODE: ProcName
+	    ....
+	    RET   <--- You should always add a RET here !!!
+	    ;CODE
+
+   If you want to invoke FORTH words in assembly, understanding to the
+   meaning of these registers is necessary :
+
+       EAX : for TOP of data stack
+       EBX : for user pointer
+       EBP : for data stack pointer
+       ESP : for return stack pointer
+
+   any other register are reserved by CF for future use ( like OOP ).
+   Currently only these four registers need to be restore before you invoke
+   FORTH words. And you must know their meaning before you try to invoke
+   FORTH words.
+
+4. Syntax comparsion between CF and MASM .
+
+   The syntax is different from Microsoft's MASM, but you can disassemble
+   codes with MASM syntax output, use the word MASM-LOOK .
+
+   Refer to VERIFY.4TH for a complete instruction reference . Here are
+   some examples : ( after you FLOADed INFIX.4TH , you could use infix. )
+
+   ÕÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¸
+   ³         CF Assembly               ³              MASM                 ³
+   ÆÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍµ
+   ³ * All in uppercase                ³  * Either uppercase or lowercase  ³
+   ³ * Delimited by at least one space ³  * Delimited by separator like ','³
+   ³ * Postfix mathematics by default  ³  * Infix mathematics              ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  BYTE^                            ³   BYTE PTR                        ³
+   ³  WORD^                            ³   WORD PTR                        ³
+   ³  DWORD^                           ³   DWORD PTR                       ³
+   ³  QWORD^                           ³   QWORD PTR                       ³
+   ³  TBYTE^                           ³   TBYTE PTR                       ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  { EAX }                          ³   [EAX]                           ³
+   ³  { EAX EBX + }                    ³   [EAX+EBX]                       ³
+   ³  { EAX EBX *2 + }                 ³   [EAX+EBX*2]                     ³
+   ³  { EAX *2 EBX + }                 ³   [EAX*2+EBX]                     ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  { EAX EBX *4 + $12345678 + }     ³   [EAX+EBX*4+012345678H]          ³
+   ³  { EAX $12345678 + EBX *4 + }     ³   [EAX][EBX*4]+012345678H         ³
+   ³  { EBX *4 EAX + $12345678 + }     ³   [EAX][EBX*4+012345678H]         ³
+   ³  { EAX EBX *4 $12345678 + + }     ³   ......                          ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  CODE: <name>                     ³   PROC  <name>                    ³
+   ³                                   ³   <name> PROC                     ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  ;CODE                            ³   ENDP                            ³
+   ³                                   ³   ENDP  <name>                    ³
+   ³                                   ³   <name> ENDP                     ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  <postfix expr> CONSTANT <name>   ³   <name>  EQU  <expression>       ³
+   ³  VARIABLE <name>                  ³   <name>  DD   ?                  ³
+   ³  CREATE <name> $," <string>"      ³   <name>  DB   <string>           ³
+   ³  CREATE <name> 1024 ALLOT         ³   <name>  DB   1024 DUP(?)        ³
+   ³  CREATE TABLE32 123 , -312 , 0 ,  ³   TABLE32 DD   123,-312,0,        ³
+   ³                 $123 , 32 ,       ³           DD   123H, 32           ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  MOV    EAX   EBX                 ³   MOV   EAX, EBX                  ³
+   ³  MOV    WORD^ { EAX }  BX         ³   MOV   WORD PTR [EAX], BX        ³
+   ³  MOV    BYTE^ { EBX }  AL         ³   MOV   BYTE PTR [EBX], AL        ³
+   ³  MOV    { EBP EDI + }  ECX        ³   MOV   [EBP+EDI], ECX            ³
+   ³  MOV    { ( EBP + EDI ) }  ECX    ³   MOV   [EBP+EDI], ECX            ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  MOV    { VARIABLE-NAME }  ECX    ³   MOV   VARIABLE-NAME, ECX        ³
+   ³                                   ³   MOV   [VARIABLE-NAME], ECX      ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³        immediate value :          ³       immediate value :           ³
+   ³  MOV    EAX  $1234ABCD #          ³   MOV   EAX, 012345678H           ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  ADD    EAX   EDX                 ³   ADD   EAX,EDX                   ³
+   ³  ADD    { EBP EDI *2 + }  EDX     ³   ADD   [EBP+EDI*2], EDX          ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  CALLF  { EDX }                   ³   CALL  FAR PTR [EDX]             ³
+   ³  CALL   ' SubroutineName #        ³   CALL  SubroutineName            ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  JMPF   { EDX }                   ³   JMP   FAR PTR [EDX]             ³
+   ³  JMP    AddressValue #            ³   JMP   AddressValue              ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³  INT    $21 #                     ³   INT   21H                       ³
+   ÃÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+   ³ // comments .........             ³   ; comments .........            ³
+   ÔÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¾
+
+   As you can see, any value should be followed by a '#' unless they are in
+   { ... } .
+
+5. About structure control words :
+
+  You can use labels and jumps to control your program flow, however this
+  is not recommented since there are better ways to reach the same goal :
+  use IF ... ELSE ... ENDIF, BEGIN ... WHILE ... REPEAT, BEGIN ... UNTIL .
+
+  5.1  Condition tests :
+
+	0=  0<>  0<  0>=  =  <>  <=  >=  <  >  U<=  U>=  U<  U>
+
+      Their meanings are similar to associated FORTH words, I only illustrates
+      some of them :
+
+       ù Example 1 : Compare with zero
+
+		OR   EAX EAX
+		0=   IF        // test if zero
+		     // EAX is zero ....
+		ELSE
+		     // EAX is not zero
+		ENDIF
+
+       ù Example 2 : Signed comparsion
+
+		CMP  EAX  EBX
+		<=   IF // signed compare
+		     // EAX is less than or equal to EBX   EAX <= EBX
+		ELSE
+		     // EAX is greater than   EAX > EBX
+		ENDIF
+
+       ù Example 3 : Unsigned comparsion, carry bit test :
+
+		CMP  EAX  EBX
+		U<   IF
+		     // carry bit set, EAX is smaller than EBX ( unsigned )
+		ELSE
+		     // carry bit not set,   EAX  U>=  EBX
+		ENDIF
+
+       ù Example 4 : Unsigned comparsion, carry bit test :
+
+		INT  $21 # // MSDOS system call
+		U>=  IF
+		     // carry bit not set by INT $21 #
+		ELSE
+		     // carry bit set by INT $21 #
+		ENDIF
+
+
+  5.2  <condition> IF ... [ ELSE ] ... ENDIF
+
+       Take the above Example 4 as example, it's a testing to CARRY flag.
+       The 'U>= IF' lay down a 'JU<' which is  'JNAE' which is  'JB'
+       which is 'JC', jump only if carry bit is set, otherwise don't jump
+       so the code between IF and ELSE will be executed if CARRY bit is
+       not set.
+
+       The 'ELSE' is of course optional, it just lays a JMP to the line
+       you write 'ENDIF' .
+
+  5.3  <register>    FOR ... NEXT
+       <immediate> # FOR ... NEXT
+	
+	A definite loop structure. It use ECX as loop counter, decrement
+	it until it became zero.
+
+	Example :
+	    MOV     EAX   100 #
+	    EAX     FOR         // generate MOV    ECX  EAX
+		    ......
+	    NEXT                // generate DEC    ECX
+				//          JNZ    <start of loop body> #
+	  this is equivalent to 
+	    100 #   FOR
+		    ......
+	    NEXT        
+
+
+  5.4  BEGIN ... <condition> UNTIL :
+
+	Perform ... until condition is TRUE .
+
+	Example :
+	    BEGIN
+	      ...    // do this until carry flag is set
+	    U< UNTIL
+
+
+  5.5  BEGIN  <clause1> <condition>  WHILE  <clause2>  REPEAT
+
+	Perform <clause1> then check whether <condition> is TRUE or FALSE,
+	if it is TRUE, continue <clause2> and then REPEAT again, the REPEAT
+	will jump to where the BEGIN is, thus execute <clause1> and test
+	<condition> again; if <condition> is FALSE, it will leave the loop
+	and continue execution after REPEAT .
+
+  5.6  BEGIN ... AGAIN : Infinite loop, Never Ending Story .
+
+  5.7  With these control structures, you shouldn't need any label any more,
+       try to use these and write strucuture code ! Of course, I support
+       labels but I STRONGLY suggest you not to use them ! It will be
+       discussed in section 7.
+
+  5.8  THE FOLLOWING TABLE IS JUST FOR REFERENCE, YOU SHOULD COMPREHEND ITS
+       MEANING BUT NOT TO MEMORIZE THEM !
+
+       ÚÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄÂÄÄÄÄ¿
+       ³  0=³ 0<>³ 0< ³ 0>=³  = ³ <> ³ <= ³ >= ³  < ³  > ³ U<=³ U>=³U<  ³ U> ³
+       ÃÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄÅÄÄÄÄ´
+       ³ JNE³ JZ ³ JNS³ JS ³ JNE³ JZ ³JNLE³JNGE³ JNL³ JNG³JNBE³ JNA³JNC ³JNAE³
+       ÀÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÁÄÄÄÄÙ
+
+      !! Note that there are no '0>' and '0<=' conditions !!
+
+       ù Flags set by CMP instruction "CMP  op1  op2" :
+	 < Think of them as SUB instruction : >
+	 ÕÍÍÍÍÍÍÍÍÍÍÍÍÍËÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¸
+	 ³  Condition  º  Signed Compare    ³   Unsigned Compare    ³
+	 ÃÄÄÄÄÄÄÄÄÄÄÄÄÄ×ÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÅÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄÄ´
+	 ³  op1 > op2  º  ZF=0 AND SF=OF    ³   CF=0  AND  ZF = 0   ³
+	 ³  op1 ò op2  º  SF=OF             ³   CF=0                ³
+	 ³  op1 = op2  º  ZF=1              ³   ZF=1                ³
+	 ³  op1 ó op2  º  ZF=1 AND SF<>OF   ³   CF=1  OR  ZF=1      ³
+	 ³  op1 < op2  º  SF<>OF            ³   CF=1                ³
+	 ÔÍÍÍÍÍÍÍÍÍÍÍÍÍÊÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¾
+	 < as you can see :  NOT(op1>op2) ğ (op1<=op2)
+			 ==> NOT( CF=0 AND ZF=0 ) ğ ( CF=1 OR ZF=1 ) >
+
+6. About data structure :
+
+  Unlike MASM, there is no default value to a data structure, you must
+  initialize them by yourself. For example, you can use MOVE word to
+  copy a default data structure which is initialized . Besides, each
+  field MUST have its own UNIQUE name.
+
+  Syntax : Note that the meaning of 'WORD' in FORTH is not the same as in
+	   assembly. In CF, word sized means 32 bit cell sized . 16 bit
+	   data is half-word sized.
+
+   ÕÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÑÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¸
+   ³             CF                      ³            MASM                  ³
+   ÆÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍØÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍµ
+   ³    STRUCT: <StructName>             ³      STRUC    <name>             ³
+   ³                                     ³                                  ³
+   ³          BYTE:  |ByteFieldName      ³         <name>  DB  ?            ³
+   ³         HWORD:  |16BitFieldName     ³         <name>  DW  ?            ³
+   ³          WORD:  |32BitFieldName     ³         <name>  DD  ?            ³
+   ³      10 FIELD:  |TenBytesField      ³         <name>  DB  10 DUP(?)    ³
+   ³                                     ³                                  ³
+   ³        STRUCT:  <NestingStructName> ³                                  ³
+   ³           WORD: |Nested32Field      ³                                  ³
+   ³           ...                       ³                                  ³
+   ³        ;STRUCT: |NestingStructField ³                                  ³
+   ³                                     ³                                  ³
+   ³    ;STRUCT                          ³      ENDS  <name>                ³
+   ³ or ;STRUCT:  DataObjectName         ³                                  ³
+   ³                                     ³                                  ³
+   ÔÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÏÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍÍ¾
+
+  Example :
+
+      LEA   EDX   { DataObjectName |NestingStructField }
+      MOV   { EDX |Nested32Field }   EBX
+
+     In order not to confuse WORD: HWORD: ... you can use FIELD: any time,
+  in fact, 'BYTE:' is defined as '1 FIELD:', 'HWORD:' as '2 FIELD:',
+  and so on.
+
+7. Label words :
+
+     In this system, all label names must be defined first since I don't
+     think you need them. Any label could be reuse ( but better not ) with
+     a BLIND-LABEL: command.
+
+  7.1  Defining labels :
+
+     Syntax :
+
+	LABEL: AnyLabelNameYouLike          // Define ONE label
+	LABELS: LabelName1 LabelName2 ...   // Define labels till end of line
+
+     After you define these labels, they cannot be seen ... thus any reference
+     to them will became forward reference, not until it is settled down, the
+     forward reference won't be resolved.
+
+  7.2  Settle down your labels :
+
+     Settle them down with a pair of eyes : the '@@'
+
+     Syntax :
+
+      @@ DefinedLabelName  // any forward reference to it will be resolved now.
+
+     Give the label eyes ( @@ ) so that they can see things. Otherwise they
+     are initially blind.
+
+  7.3  Example :
+
+	     CODE: Routine1
+		   RET
+		   ;CODE
+	     CODE: Routine2
+		   RET
+		   ;CODE
+
+	     ' Routine2  CONSTANT  Routine2'sAddress
+
+	     LABELS: L1: L2:
+
+	     CODE: Subroutine
+		   OR     ECX  ECX
+		   J0=    L1:         // no '#' after label name !!!
+		   CALL   L2:         // no '#' after label name !!!
+		   DIV    ECX
+		   CALL   ' Routine1 #
+		   XOR    EAX  EAX
+		   RET
+	       @@ L1:  // label 1 settled down.
+		   CALL   Routine2'sAddress #   // no ' since it is an address
+		   MOV    EAX  -1 #
+		   RET
+	       @@ L2:  // label 2 settled down now .
+		   CALL   ' ErrMessage1 #
+		   RET
+		   ;CODE // End Subroutine
+
+  7.4  Reuse defined labels :
+
+       You could reuse the defined labels, but this is not recommended since
+       all label should have its specific meaning and the name should describe
+       what its purpose is, so if you still want to reuse them, you must blind
+       them one by one, just like this :
+
+       Syntax :
+
+	 BLIND-LABEL: L1:    // Blind them, blind one at a time
+	 BLIND-LABEL: L2:
+
+       Now, they are blind, you must give them eyes ( @@ ) so that they
+       could see you.
+
+8. Programming support :
+
+ 8.1  Defining Data :
+
+       10  CONSTANT  TEN
+
+       VARAIBLE  32BITVAR
+       CREATE 32BITARRAY  1234 , 4321 , $1234 , BINARY 10010010000111 ,
+       DECIMAL // reset base to DECIMAL
+
+       STRUCT: StructureName:
+	   1 FIELD: |1byteField
+	   2 FIELD: |2byteField
+	   STRUCT: nested_structure
+	       10  FIELD: |nameString
+	       256 FIELD: |addressString
+	   ;STRUCT: |nestedField
+       ;STRUCT: DataObject1
+
+       StructureName: DataObject2
+
+ 8.2  Defining procedures :
+
+	CODE: MainProc
+		// ...
+		RET
+		;CODE
+
+
+						( To be continue ... )
+						~~~~~~~~~~~~~~~~~~~~~~
+
+

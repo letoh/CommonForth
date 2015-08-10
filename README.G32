@@ -1,0 +1,91 @@
+modules:
+
+	a real-mode control program (code/data segments)
+	a 16-bit protected mode interface section
+	a 32-bit flat program arena, loaded from a.out file
+
+control assist functions:
+
+	All control assist functions use linear addresses, not segment addresses!
+
+word32	peek32(vaddr)
+	poke32(vaddr, word32)
+word16	peek16(vaddr)
+	poke16(vaddr, word16)
+word8	peek8(vaddr)
+	poke8(vaddr, word8)
+	memget(vaddr, void *, length)
+	memput(vaddr, void *, length)
+
+VCPU structure: (global var contains pointer to current VCPU)
+
+	it's a TSS with extra stuff at the end
+	One TSS for control program state (unused but required)
+	One TSS for arena program state
+	others for other stuff
+
+	Page faults cause task switches; other are regular interrupts
+	that jump through a TSS later
+
+Interface routines:
+
+	go32 - VCPU contains state to jump into
+	  returns for exceptions and interrupts
+
+GDT entries:
+
+	<zero>
+	GDT
+	IDT
+	control code (use16)
+	control data (use16)
+	interface code (use32)
+	interface data (use32)
+	core memory (use32)
+	arena code (use32)
+	arena data (use32)
+	control TSS state
+	arena TSS state
+	other TSS state (for convenience functions)
+	page fault TSS state
+
+Mappings:
+
+	arena segments start at 0x10000000
+	core remapped to 0xF0000000 (0xE0000000 to arena)
+	VGA 256c paging at 0xE0000000 (0xD0000000 to arena)
+
+Page management:
+
+	bit-per-physical page map for free list
+	PT entry contains state and location information:
+	 * present (inc. dirty, accessed)
+	 * uninitialized
+	 * paged to disk (includes block address)
+	bit-per-page map for disk swap free list
+
+interrupts:
+
+	int 21,AH=4A
+		AL=0 brk(ebx) returns old brk in eax
+		AL=1 sbrk(ebx) returns old brk in eax
+
+	int 21,AH=FF - turbo assist.  Func in AL, parms (ebx,ecx,edx) ret eax
+	1: creat
+	2: open
+	3: fstat
+	4: gettimeofday
+	5: settimeofdat
+	6: stat
+	7: system
+
+	int 10, AH=FF - set video mode
+	0: 80x25 text
+	1: default text
+	2: text CX cols by DX rows
+	3: biggest text
+	4: 320x200 graphics
+	5: default graphics
+	6: graphics CX width by DX height
+	7: biggest non-interlaced graphics
+	8: biggest graphics

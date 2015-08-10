@@ -1,0 +1,301 @@
+// ////////////////////////////////////////////////////////////////////////
+// Utility words for MetaForth 1.0      // Version 1.0
+					// 02/03/'96 .. 02/03/'96
+
+: BACKCF $1462C4 >R ;   // Back to loader's QUIT
+: CELLS  CELL* ;
+: CELL-  4 - ;
+: TUCK   SWAP OVER ;
+: ENDIF  \ THEN ; IMMEDIATE
+: U.R    ( u +n -- ) >R <# #S #> R> OVER - SPACES TYPE ;
+: U.     ( u -- )    <# #S #> TYPE SPACE ;
+: .ZEROS ( +n -- )   0 MAX FOR AFT [ CHAR 0 ] LITERAL EMIT THEN NEXT ;
+: U.0R   ( n +n -- ) >R <# #S #> R> OVER - .ZEROS TYPE ;
+: .H     ( n -- )    BASE @ HEX SWAP . BASE ! ;
+: U.H    ( n -- )    BASE @ HEX SWAP U. BASE ! ;
+: ?      ( a -- )    @ . ;
+: >CHAR  ( c -- c )  DUP $FF BL WITHIN IF  DROP [ CHAR _ ] LITERAL  THEN ;
+: _TYPE  ( b u -- )  FOR AFT  DUP C@ >CHAR EMIT 1+  THEN NEXT DROP ;
+: dm+    ( a u -- a ) OVER [ CELL 2* ] LITERAL U.R SPACE
+	 FOR AFT  DUP C@ SPACE 2 U.0R 1+  THEN NEXT ;
+: DUMP   ( a u -- ) // Dump u bytes from a, in a formatted manner.
+	 BASE @ >R HEX // Save radix, set hex
+	 $10 / FOR
+	     CR $10 2DUP dm+ -ROT 2 SPACES _TYPE
+	 NEXT
+	 DROP R> BASE ! ;
+: FORGET ( -- )  ' >NAME DUP DP ! NAME> >LINK @ DUP CURR ! LAST ! ;
+: EXIT   ['] exit compile, ; IMMEDIATE
+: TRUE   -1 ;M          : FALSE  0 ;M
+: ON     TRUE SWAP ! ;   : OFF  FALSE SWAP ! ;
+: BEEP   7 EMIT ;
+: CRASH  TRUE ABORT" Uninitialized vector" ;
+: DEFER  CREATE ['] CRASH , DOES> @EXECUTE ;
+  VARIABLE (STATE)
+: STATE  'EVAL @ ['] $COMPILE = (STATE) ! (STATE) ;
+: ASCII  CHAR STATE @ IF \ LITERAL THEN ; IMMEDIATE
+: IS     STATE @ IF  
+	    ' >BODY \ LITERAL COMPILE !  
+	 ELSE  
+	    ' >BODY !  
+	 THEN ; IMMEDIATE
+: TOKEN  BL WORD ;
+: VALUE  CREATE , DOES> @ ;
+: $+     ( target$ src len -- target$ )
+	 ROT >R R@ C@ 2DUP + R@ C!  R@ + 1+ SWAP CMOVE R> ;
+: TRANSLATE ( buf len -- T/F )
+	>IN @ >R #TIB @ >R TIB >R SPAN @ >R
+	DUP #TIB ! SPAN ! TIB0 ! >IN OFF
+	['] EVAL CATCH
+	R> SPAN ! R> TIB0 ! R> #TIB ! R> >IN ! ;
+
+// ////////////////////////////////////////////////////////////////////////
+// CASE ... OF ... ENDOF ... ENDCASE control structure           Luke Lee.
+//  Implement this control structure by IF ... ELSE ... ENDIF
+
+: CASE  -1 ; IMMEDIATE
+: OF    COMPILE OVER COMPILE = \ IF COMPILE DROP ; IMMEDIATE
+: ENDOF \ ELSE ; IMMEDIATE
+: ENDCASE
+	COMPILE DROP
+	BEGIN DUP -1 <> WHILE \ ENDIF REPEAT DROP ; IMMEDIATE
+
+// Note that ENDCASE will compile a DROP.
+
+// ////////////////////////////////////////////////////////////////////////
+// DO LOOP in high level                         Written by Luke Lee
+
+: (DO)  ( limit init -- )
+	R> DUP @ >R CELL+ -ROT SWAP >R >R >R ;
+: (?DO) ( limit init -- )
+	2DUP = IF
+	   2DROP R> @ >R EXIT 
+	ELSE
+	   R> DUP @ >R CELL+ -ROT SWAP >R >R >R 
+	THEN ;
+: (LOOP)
+	R>
+	R> 1+   DUP R@ = IF // index = limit
+	   2DROP RDROP EXIT
+	ELSE
+	   >R @ >R
+	THEN ;
+: (+LOOP)    ( n -- )
+	 R> SWAP
+	 R> +   DUP R@ >= IF
+	    2DROP RDROP EXIT
+	 ELSE
+	    >R @ >R
+	 THEN ;
+: (LEAVE)       // left leaving address on top of return address
+	 RDROP    RDROP RDROP ;
+: (?LEAVE)
+	 IF RDROP   RDROP RDROP THEN ;
+: #I     R@ ;M
+: #J     ( -- inner_loop_index )        RP@ [ 3 CELLS ] LITERAL + @ ;
+: #K     ( -- third_loop_index )        RP@ [ 6 CELLS ] LITERAL + @ ;
+: DO     ( -- HERE0 )   COMPILE (DO) 0 , HERE ; IMMEDIATE
+: ?DO    ( -- HERE0 )   COMPILE (?DO) 0 , HERE ; IMMEDIATE
+: xLOOP  ( HERE0 x -- )
+	 IF   COMPILE (+LOOP)   ELSE   COMPILE (LOOP)   THEN
+	 DUP ,    HERE  SWAP CELL-  ! ;
+: LOOP   ( HERE0 -- )  FALSE xLOOP ; IMMEDIATE
+: +LOOP  ( HERE0 -- )  TRUE  xLOOP ; IMMEDIATE
+: LEAVE  ( HERE0 -- HERE0 )  COMPILE (LEAVE) ; IMMEDIATE
+: ?LEAVE ( HERE0 -- HERE0 )  COMPILE (?LEAVE) ; IMMEDIATE
+
+// ///////////////////////////////////////////////////
+// Short cut boolean evaluation, portable version 
+
+VARIABLE ANDTHEN-STARTED        VARIABLE ORELSE-STARTED
+: ?EXPECT-THEN-AND ( #count -- #count )  DUP 0> ABORT"  THEN-AND expected " ;
+: ?EXPECT-ELSE-OR  ( #count -- #count )  DUP 0< ABORT"  ELSE-OR expected " ;
+: REANDTHEN  ANDTHEN-STARTED OFF ; IMMEDIATE
+: ANDTHENED  ANDTHEN-STARTED ON ; IMMEDIATE
+: ANDTHEN  // ( -- A +#count ) or ( A +#count -- A A' +#count )
+	ANDTHEN-STARTED @ IF
+	    >R
+	    COMPILE DUP \ IF COMPILE DROP
+	    R> 1+  // 'IF' may returns more than 1 value
+	ELSE
+	   -1 ANDTHEN-STARTED !
+	   COMPILE DUP \ IF COMPILE DROP 1
+	THEN  ; IMMEDIATE
+: THEN-AND // ( A0 A1 A2 ... +#count -- )
+	?EXPECT-ELSE-OR         // prevent misuse of THEN-AND
+	0 ANDTHEN-STARTED !
+	0 ?DO \ THEN LOOP  ; IMMEDIATE
+: REORELSE  ORELSE-STARTED OFF ; IMMEDIATE
+: ORELSED   ORELSE-STARTED ON ; IMMEDIATE
+: ORELSE  // ( -- A #count ) or ( A #count -- A A' #count )
+	ORELSE-STARTED @ IF
+	    >R
+	    COMPILE DUP COMPILE NOT \ IF COMPILE DROP
+	    R> 1-
+	ELSE
+	    -1 ORELSE-STARTED !
+	    COMPILE DUP COMPILE NOT \ IF COMPILE DROP -1
+	THEN  ; IMMEDIATE
+: ELSE-OR  // ( A0 A1 A2 ... -#count -- )
+	?EXPECT-THEN-AND        // prevent misuse of ELSE-OR
+	0 ORELSE-STARTED !
+	0 SWAP ?DO \ THEN LOOP  ; IMMEDIATE
+: :     0 DUP ANDTHEN-STARTED ! ORELSE-STARTED !  :       ;
+
+// ///////////////////////////////////////////////////////////////////////
+// LL(K) Grammar Compiler       // Written by  : Luke Lee               //
+				// Version     : Art       09/24/'95    //
+DEFER GetToken  CREATE ThisToken 128 ALLOT
+: (GetToken)    TOKEN DUP ThisToken 128 CMOVE ; ' (GetToken) IS GetToken
+: STR"	   	HERE  $,"  ;
+: PUSH>IN       R> >IN @ >R >R   ;
+: ?POP>IN       R> SWAP ORELSE  R@ >IN ! FALSE  ELSE-OR  RDROP SWAP >R ;
+: TokenMatch?   PUSH>IN  GetToken  $=  ?POP>IN  ;
+: LAMBDA        ; IMMEDIATE
+: T:    >R \ : OVERT \ ANDTHEN R> \ LITERAL COMPILE TokenMatch? ;
+: ;T    \ THEN-AND  \ ;  ; IMMEDIATE
+: {     \ REANDTHEN \ ANDTHEN ; IMMEDIATE  // action routine
+: }     COMPILE TRUE \ THEN-AND \ ANDTHENED ; IMMEDIATE
+: [[    ; IMMEDIATE     
+: ]]    COMPILE DROP COMPILE TRUE ; IMMEDIATE
+: {{    \ [[ \ BEGIN  ; IMMEDIATE
+: }}    COMPILE DUP COMPILE NOT \ UNTIL \ ]]  ; IMMEDIATE
+: P:    \ : OVERT \ ANDTHEN COMPILE PUSH>IN COMPILE FALSE ;
+: ->    COMPILE ?POP>IN \ ORELSE COMPILE PUSH>IN COMPILE TRUE ; IMMEDIATE
+: ;P    COMPILE ?POP>IN \ ELSE-OR \ THEN-AND \ ;              ; IMMEDIATE
+
+// ///////////////////////////////////////////////////////////////////////
+//  Infix grammar sample with LL(k) Compiler .
+//
+				// 09/21/'95  Written by  : Luke Lee
+				//            Version     : 1.0
+				//            Last update : 09/22/'95
+
+FALSE VALUE ShowInfix?   CREATE LineBuffer  512 ALLOT   VARIABLE FIRSTWORD
+: Concat  ( A$ -- )  LineBuffer SWAP COUNT $+ $"  " COUNT $+ DROP ;
+: #append ( -- )     ThisToken Concat  ;
+: #append_op:  ' >BODY \ LITERAL COMPILE Concat ; IMMEDIATE
+: op_concator:  
+	CREATE  9 ALLOT
+	DOES>   ThisToken SWAP 9 CMOVE ;
+CREATE uniary_op 9 ALLOT 
+op_concator: #logical_op
+op_concator: #relational_op  
+op_concator: #adding_op      
+op_concator: #multiplying_op
+op_concator: #exponational_op
+op_concator: #abs_op
+
+CR .( Defining Token ) CR
+
+STR" +"   T: '+'   ;T
+STR" -"   T: '-'   ;T
+STR" *"   T: '*'   ;T
+STR" /"   T: '/'   ;T
+STR" ))"  T: '))'  ;T
+STR" ="   T: '='   ;T
+STR" <"   T: '<'   ;T
+STR" >"   T: '>'   ;T
+STR" <>"  T: "<>"  ;T
+STR" <="  T: "<="  ;T
+STR" >="  T: ">="  ;T
+STR" **"  T: "**"  ;T
+STR" F+"  T: "F+"  ;T
+STR" F-"  T: "F-"  ;T
+STR" F*"  T: "F*"  ;T
+STR" F/"  T: "F/"  ;T
+STR" F**" T: "F**" ;T
+STR" NOT" T: "NOT" ;T
+STR" AND" T: "AND" ;T
+STR" OR"  T: "OR"  ;T
+STR" XOR" T: "XOR" ;T
+STR" MOD" T: "MOD" ;T
+STR" ABS" T: "ABS" ;T
+STR" FABS" T: "FABS" ;T
+
+CR .( Defining Grammar ) CR
+
+.( Production rule 1) CR
+P: <primary> -> { DROP GetToken C@ 0<> }  // anything not NULL
+	     ;P
+.( Production rule 2) CR
+P: <logical_op> -> "AND"        { #logical_op }
+		-> "OR"         { #logical_op }
+		-> "XOR"        { #logical_op }
+		;P
+.( Production rule 3) CR
+P: <relational_op> -> '='       { #relational_op }
+		   -> "<>"      { #relational_op }
+		   -> '<'       { #relational_op }
+		   -> "<="      { #relational_op }
+		   -> '>'       { #relational_op }
+		   -> ">="      { #relational_op }
+		   ;P
+.( Production rule 4) CR
+P: <adding_op> -> '+'           { #adding_op }
+	       -> '-'           { #adding_op }
+	       -> "F+"          { #adding_op }
+	       -> "F-"          { #adding_op }
+	       ;P
+.( Production rule 5) CR
+P: <multiplying_op> -> '*'      { #multiplying_op }
+		    -> '/'      { #multiplying_op }
+		    -> "F*"     { #multiplying_op }
+		    -> "F/"     { #multiplying_op }
+		    -> "MOD"    { #multiplying_op }
+		    ;P
+.( Production rule 6) CR
+P: <abs_op> -> "ABS"            { #abs_op }
+	    -> "FABS"           { #abs_op }
+	    ;P
+.( Production rule 7) CR
+P: <exponational_op> -> "**"      { #exponational_op }
+			<primary> { #append #append_op: #exponational_op }
+		     -> "F**"     { #exponational_op }
+			<primary> { #append #append_op: #exponational_op }
+		     ;P
+.( Production rule 8) CR
+P: <uniary_op> -> '+' { 0 uniary_op ! }
+	       -> '-' { $" NEGATE" uniary_op OVER C@ 1+ CMOVE }
+	       ;P
+.( Production rule 9) CR
+P: <factor> -> [[ <uniary_op> ]] <abs_op>
+	       <primary> { #append #append_op: #abs_op #append_op: uniary_op }
+	    -> [[ <uniary_op> ]] <primary> { #append }
+	       [[ <exponational_op> { #append_op: uniary_op } ]]
+	    -> "NOT" <primary> { #append  $" NOT" Concat }
+	    ;P
+.( Production rule 10) CR
+P: <term> -> <factor> 
+	     {{ <multiplying_op> <factor> { #append_op: #multiplying_op } }}
+	  ;P
+.( Production rule 11) CR
+P: <simple_expr> -> <term> {{ <adding_op> <term> { #append_op: #adding_op } }}
+		 ;P
+.( Production rule 12) CR
+P: <relation> -> <simple_expr> {{ <relational_op> <simple_expr> 
+				  { #append_op: #relational_op } }}
+	      ;P
+.( Production rule 13) CR
+P: <expression> -> <relation> {{ <logical_op> <relation> 
+				 { #append_op: #logical_op } }}
+		;P
+.( Production rule 14) CR
+P: <infix_expr_rest> -> <expression> '))'    // the rest of infix expression
+		     -> '))'
+		     ;P
+: **    ( a b -- a^b )  FOR 1 AFT OVER * THEN NEXT NIP ;
+: ((    ( -- )
+	0 LineBuffer !
+	TRUE <infix_expr_rest> IF
+	   ShowInfix? IF 
+	      CR ." LineBuffer : " CR LineBuffer .$ CR
+	   THEN
+	   LineBuffer COUNT TRANSLATE ?DUP IF THROW THEN
+	ELSE
+	   CR TRUE ABORT" * Infix syntax error "
+	THEN ; IMMEDIATE
+: .INFIX   ShowInfix? NOT IS ShowInfix?  ;      // toggle displaying
+
+
+
